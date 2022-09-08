@@ -1,0 +1,24 @@
+~ReportController.loopForEachPlant
+report_start_str: 2022-07-20 00:00:00
+report_end_str: 2022-08-20 23:59:59
+request_plantno:
+
+~ReportController.writePdf
+year: 2022
+month: 1
+
+~emailModel.sendEmail
+emailFrom: chris.cheung@aprentalshk.com
+emailTo: chris.cheung@aprentalshk.com, albert.wong@aprentalshk.com
+fileName: 20220404T154502.csv
+reportStartDateStr: 2022-05-01
+reportEndDateStr: 2022-05-31
+
+~ReportController.removeRelated
+year: 2022
+month: 4
+request_plantno:
+
+~ReportController.process_month
+year: 2022
+month: 4
