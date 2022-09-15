@@ -1,5 +1,9 @@
 import pandas as pd
+from datetime import timedelta
+
 from codes.controllers.MonthlyReportController import MonthlyReportController
+from codes.models import reportModel
+from codes import config
 
 
 class CompareReportController(MonthlyReportController):
@@ -12,6 +16,30 @@ class CompareReportController(MonthlyReportController):
         self.loop_setup(datefrom, dateto)
 
     def getCompareReportImage(self):
+        fls, df_fuel_level_avgs, topVolumes, fuelTanks = {}, {}, {}, {}
+        for plantno in self.plantnos:
+            PlantData = self.getPlantData(plantno)
+            fl, df_fuel_level_avg = self.getFuelLevelUsage(PlantData.rawData)
+            # plot the fuel consumption image
+            self.graphPlotter.getFuelConsumptionPlot(fl, PlantData.fuelTankCapacity, PlantData.topVolume, config.tempPath, plantno)
+            # store the fuel tank
+            fuelTanks[plantno] = self.fuelTanks[plantno]['fuelTankCapacity']
+            # store the top volume
+            topVolumes[plantno] = PlantData.topVolume
+            # store the fls
+            fls[plantno] = fl
+            # get the fuel level df
+            df_fuel_level_avgs[plantno] = df_fuel_level_avg
+            # plot the kWh image (bar)
+            self.graphPlotter.getkWhPlot(PlantData.rawData, config.tempPath, plantno)
+            # plot the kW image (line)
+            self.graphPlotter.getkWPowerPlot(PlantData.rawData, config.tempPath, plantno)
+
+        self.graphPlotter.getFuelLevelMeasurement(df_fuel_level_avgs, config.tempPath)
+        self.graphPlotter.getTotalRefillPlot(fls, fuelTanks, topVolumes, config.tempPath)
+        self.graphPlotter.getGroupFuelConsumption(fls, fuelTanks, topVolumes, config.tempPath)
+
+    def getCompareReportImage__DISCARD(self):
         refuelByPlantnoDf = pd.DataFrame()  # re-fuel df
         fuelLevelMeasureDf = pd.DataFrame()  # fuel level comparing df
         fuelConsumptionDf = pd.DataFrame()  # fuel consumption
@@ -58,5 +86,8 @@ class CompareReportController(MonthlyReportController):
 
 # YG1063 YG1064 is very frustrated fuel level example
 # compareController = CompareReportController(['YG1063', 'YG1064'], "2022-07-20 00:00:00", "2022-08-19 23:59:59")
-compareController = CompareReportController(['YG634', 'YG635', 'YG700', 'YG701', 'YG709', 'YG716'], "2022-07-20 00:00:00", "2022-08-19 23:59:59")
-compareController.getCompareReportImage()
+# compareController = CompareReportController(['YG634', 'YG635', 'YG700', 'YG701', 'YG709', 'YG716'], "2022-07-20 00:00:00", "2022-08-19 23:59:59")
+# compareController = CompareReportController(['YG409', 'YG716'], "2022-07-20 00:00:00", "2022-08-19 23:59:59")
+# compareController = CompareReportController(['YG716'], "2022-07-20 00:00:00", "2022-08-19 23:59:59")
+# compareController = CompareReportController(['YG409'], "2022-07-01 00:00:00", "2022-07-31 23:59:59") # very frustrated
+# compareController.getCompareReportImage()

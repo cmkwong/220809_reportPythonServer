@@ -70,8 +70,8 @@ def getAttachment(path, fileName, attachFileName):
 
 def sendEmail(contentHtml=config.DEFAULT_HTML, *,
               emailFrom:str, emailTo:str, fileName:str, reportStartDateStr:str, reportEndDateStr:str):
-    abbreviatedStartDateStr = datetime.strptime(reportStartDateStr, '%Y-%m-%d').strftime('%d %B %Y')
-    abbreviatedEndDateStr = datetime.strptime(reportEndDateStr, '%Y-%m-%d').strftime('%d %B %Y')
+    abbreviatedStartDateStr = datetime.strptime(reportStartDateStr, '%Y-%m-%d %H:%M:%S').strftime('%d %B %Y')
+    abbreviatedEndDateStr = datetime.strptime(reportEndDateStr, '%Y-%m-%d %H:%M:%S').strftime('%d %B %Y')
 
     msg = MIMEMultipart()
     msg["From"] = emailFrom

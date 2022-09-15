@@ -10,10 +10,11 @@ import collections
 import pandas as pd
 import linecache
 import sys
+from scipy.interpolate import interp1d
 
 # self
 from codes import config
-from utils import fileModel
+from codes.utils import fileModel
 from codes.controllers.ReportLogic import ReportLogic
 from codes.controllers.TrackerController import Tracker
 from codes.controllers.MonthlyPlotController import MonthlyPlotController
@@ -211,6 +212,17 @@ class MonthlyReportController:
         raw_df = pd.DataFrame(self.serverController.getUnitValues(plantno, str(record_out), str(record_in)))
         if raw_df.empty:
             return pd.DataFrame()
+
+        # drop the 'Fuel Level' with empty unit (That is useless value)
+        dropIndex = raw_df[
+            (raw_df['ssmename'] == 'Fuel Level') &
+            ((raw_df['ssmeunit'] == '') | (raw_df['ssmevalue'] < '0'))].index
+        raw_df.drop(index=dropIndex, inplace=True)
+
+        # drop the 'Fuel level' with zero value (That is noisy value)
+        dropIndex = raw_df[(raw_df['ssmename'] == 'Fuel level') & (raw_df['ssmevalue'] <= '0')].index
+        raw_df.drop(index=dropIndex, inplace=True)
+
         df = raw_df.copy()
         print(f"{datetime.now()} - combine dataframes")
 
@@ -248,23 +260,26 @@ class MonthlyReportController:
         mergeDF.sort_index(inplace=True)
 
         # create dict of the new names
-        new_column_names = dict()
-        for col_name in list(mergeDF.columns.values):
-            new_name = self.rename_alias(col_name)
-            if new_name is False:
-                # msg = f"{plantno}: {col_name} missing column alias"
-                continue
-            else:
-                new_column_names[col_name] = new_name
+        # new_column_names = dict()
+        # for col_name in list(mergeDF.columns.values):
+        #     new_name = self.rename_alias(col_name)
+        #     if new_name is False:
+        #         # msg = f"{plantno}: {col_name} missing column alias"
+        #         continue
+        #     else:
+        #         new_column_names[col_name] = new_name
 
         # check if two fuel level parameters present in list
         # fuel_level has priority
-        if "fuel_level" not in new_column_names.values():
-            if "fuel_level2" in new_column_names.values():
-                new_column_names["Fuel Level"] = "fuel_level"
+        # if "fuel_level" not in new_column_names.values():
+        #     if "fuel_level2" in new_column_names.values():
+        #         new_column_names["Fuel Level"] = "fuel_level"
 
-        mergeDF.rename(columns=new_column_names, inplace=True)
-        del new_column_names
+        # rename the columns name
+        mergeDF.rename(columns=config.colNameTable, inplace=True)
+
+        # process the noisy fuel level
+
 
         # if empty dataframe, return empty Dataframe
         if mergeDF.empty:
@@ -273,16 +288,17 @@ class MonthlyReportController:
         return mergeDF
 
     def getFuelLevelUsage(self, main_df):
-        df = main_df.copy()
-        df = df.interpolate(method="linear", limit_direction="both")
+        # df = main_df.copy()
+        # df = df.interpolate(method="linear", limit_direction="both")
 
         # df = df[(df.fuel_level >= 0) & (df.rpm == 0.0)]
-        df = df[df.fuel_level >= 0]
+        # df = df[df.fuel_level >= 0]
+        rawFuelLevel = main_df['fuel_level'].dropna()
 
         # taking moving average
-        df.sort_index(inplace=True)
-        df_fuel_level_avg = df.fuel_level.resample("10T").mean()
-        df_fuel_level_avg = df_fuel_level_avg.interpolate(method="linear", limit_direction="both")
+        rawFuelLevel.sort_index(inplace=True)
+        df_fuel_level_avg = rawFuelLevel.resample("10T").mean()
+        df_fuel_level_avg = df_fuel_level_avg.interpolate(method="linear", limit_direction="both").rolling(5, win_type='exponential').mean(tau=10).fillna(method='bfill')
 
         # merge the start and end of day
         s = df_fuel_level_avg.resample("D").first()
