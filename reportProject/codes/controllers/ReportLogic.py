@@ -25,7 +25,7 @@ class ReportLogic:
         inout = int(bool(PlantData.inout))
         self.summaryTable[(registered, installed, data, inout)] += 1
 
-    def getCompanyDatas(self, PlantData, report_start_str, report_end_str):
+    def getCompanyDatas(self, PlantData, custCode2Name, report_start_str, report_end_str):
         """
         checking logic by PlantData
         return: { companyName: {data: dataframe (within record-out and record-in),
@@ -53,27 +53,30 @@ class ReportLogic:
         if PlantData.register and PlantData.installed:
             if not PlantData.rawData.empty and PlantData.inout:
                 for record in PlantData.inout.values(): # PlantData.inout is dictionary: {0: {companyName, outDate, inDate}}
-                    companyName = record['company']
+                    accountCode = '11000' + record['custCode']
+                    companyName = custCode2Name[accountCode]
                     record_out = record['out']
                     record_in = record['in']
-                    companyDatas[companyName] = {}
-                    companyDatas[companyName]['data'] = PlantData.rawData[(PlantData.rawData.index >= record_out) & (PlantData.rawData.index <= record_in)]
-                    companyDatas[companyName]['out'] = record_out
-                    companyDatas[companyName]['in'] = record_in
+                    companyDatas[accountCode] = {}
+                    companyDatas[accountCode]['companyName'] = companyName
+                    companyDatas[accountCode]['data'] = PlantData.rawData[(PlantData.rawData.index >= record_out) & (PlantData.rawData.index <= record_in)]
+                    companyDatas[accountCode]['out'] = record_out
+                    companyDatas[accountCode]['in'] = record_in
                 return companyDatas
 
             elif not PlantData.rawData.empty and not PlantData.inout:
                 msg = f"{PlantData.plantno}: No IN/OUT record but having data between {report_start_str} and {report_end_str} (Registered and installed SSME)"
                 self.tracker.logging(msg, 'info')
                 self.tracker.updateRecord(PlantData, msg)
-                # outputing the data but without company name
-                companyName = 'NA'
-                record_out = datetime.strptime(report_start_str, "%Y-%m-%d")
-                record_in = datetime.strptime(report_end_str, "%Y-%m-%d")
-                companyDatas[companyName] = {}
-                companyDatas[companyName]['data'] = PlantData.rawData[(PlantData.rawData.index >= record_out) & (PlantData.rawData.index <= record_in)]
-                companyDatas[companyName]['out'] = record_out
-                companyDatas[companyName]['in'] = record_in
+                # outputing the data but without customer code
+                accountCode = 'NA'
+                record_out = datetime.strptime(report_start_str, "%Y-%m-%d %H:%M:%S")
+                record_in = datetime.strptime(report_end_str, "%Y-%m-%d %H:%M:%S")
+                companyDatas[accountCode] = {}
+                companyDatas[accountCode]['companyName'] = 'NA'
+                companyDatas[accountCode]['data'] = PlantData.rawData[(PlantData.rawData.index >= record_out) & (PlantData.rawData.index <= record_in)]
+                companyDatas[accountCode]['out'] = record_out
+                companyDatas[accountCode]['in'] = record_in
                 return companyDatas
 
             elif PlantData.rawData.empty and PlantData.inout:

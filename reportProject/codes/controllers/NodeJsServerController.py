@@ -28,6 +28,10 @@ class NodeJsServerController:
         self.accessVariableUrl = self.mainUrl + '/api/v1/ssme/variables'
         # image plot generate
         self.plotGenerateUrl = self.mainUrl + '/api/v1/report/ssme/plot?type={}'
+        # get the customer info from production
+        self.getCustInfoUrl = self.mainUrl + '/api/v1/workflow/customer?server=prod'
+        # upload the monthly ssme data into database
+        self.uploadMonthlySsmeDataUrl = self.mainUrl + '/api/v1/workflow/ssme/data?server=dev'
 
     # renew the machine master through server API to mySQL database
     def uploadMachineItemMaster(self):
@@ -183,7 +187,29 @@ class NodeJsServerController:
             return False
         return res
 
+    # get customer info customer code - customer name
+    def getCustInfo(self):
+        r = requests.get(self.getCustInfoUrl)
+        res = r.json()
+        if r.status_code != 200:
+            print(r.text)
+            return False
+        custCode2Name = {}
+        for d in res['data']:
+            custCode2Name[d['CUSTOMERCODE']] = d['CUSTOMERNAME']
+        return custCode2Name
+
+    # post the monthly data into database
+    def postMonthlyData(self, dataDict):
+        r = requests.post(self.uploadMonthlySsmeDataUrl, json=dataDict)
+        res = r.json()
+        if r.status_code != 200:
+            print(r.text)
+            return False
+        return res
+
 # import pandas as pd
-# serverController = ServerController()
+# serverController = NodeJsServerController()
 # data = serverController.getUnitValues("PG1147", "2022-07-20 00:00:00", "2022-08-19 23:59:59")
+# serverController.getCustInfo()
 # print()

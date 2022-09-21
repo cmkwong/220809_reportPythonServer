@@ -99,6 +99,10 @@ class MonthlyReportController:
         print('Reading registered SSME plantno ...')
         self.registeredPlantList = reportModel.getRegistedPlant()
 
+        # read customer info
+        print('Reading Customer Info ...')
+        self.custCode2Name = self.serverController.getCustInfo()
+
     def reportDirSetup(self, year_str, month_str):
         """
         :param: year: str
@@ -512,7 +516,7 @@ class MonthlyReportController:
                                  )
         return PlantData
 
-    def loopForEachPlant(self, reportPdfNeeded=True, *, report_start_str: str, report_end_str: str, request_plantno: list):
+    def loopForEachPlant(self, reportPdfNeeded=True, *, report_start_str: str, report_end_str: str, request_plantno: list, upload: bool):
         self.loop_setup(report_start_str, report_end_str)
 
         # get plant no, if empty request
@@ -528,14 +532,15 @@ class MonthlyReportController:
             print(f"Processing {plantno} - {loop_count + 1} of {len(request_plantno)}")
             PlantData = self.getPlantData(plantno)
             try:
-                companyDatas = self.reportLogic.getCompanyDatas(PlantData, self.report_start_str, self.report_end_str)
+                companyDatas = self.reportLogic.getCompanyDatas(PlantData, self.custCode2Name, self.report_start_str, self.report_end_str)
 
                 # if pdf not needed then continue to get the logic table
                 if not reportPdfNeeded:
                     continue
 
                 # looping for each plant, as a plant might be trade IN/OUT more than one time
-                for companyName, record in companyDatas.items():
+                for custCode, record in companyDatas.items():
+                    companyName = record['companyName']
                     record_out = record['out']
                     record_in = record['in']
                     self.tracker.logging(f'company name: {companyName}', 'info')
@@ -733,6 +738,20 @@ class MonthlyReportController:
 
                     with open(os.path.join(config.tempPath, "{}.tex".format(fileName)), "w", encoding="utf8") as f:
                         f.write(report_tex)
+
+                    ##########################################################################
+                    # update database
+                    if upload:
+                        self.serverController.postMonthlyData({
+                            "plantno": plantno,
+                            "customerCode": custCode,
+                            "dateFrom": self.report_start_str,
+                            "dateTo": self.report_end_str,
+                            "fuelReFill_L": fl.fuel_use_l.sum(),
+                            "fuelConsumption_L": fl.fuel_use_l.sum(),
+                            "co2Em_Kg": co2_df.sum(),
+                            "totalPower_kWh": avg_kw
+                        })
 
                     ##########################################################################
                     print(f"{datetime.now()} - completed")

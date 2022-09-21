@@ -40,8 +40,10 @@ def getInOutPivot():
     main_df = dfModel.discardEmptyRows(main_df, mustFields=['工作/機械編號', 'date'])
     # keep the row that did signed
     # main_df = dfModel.keepRows(main_df, fields={'Signed DN/CR': 'Y'})
+    # concat the column into customer name || account code
+    # main_df['accodeName'] = main_df.fillna('nan')[['客戶名稱 ', 'AC CODE']].agg('||11000'.join, axis=1)
     # create pivot table
-    pivotTable = pd.pivot_table(main_df, index=['工作/機械編號', 'date'], values='客戶名稱 ', columns=['出-1 /入 1'], aggfunc=lambda x: x)[[-1, 1]]
+    pivotTable = pd.pivot_table(main_df, index=['工作/機械編號', 'date'], values='AC CODE', columns=['出-1 /入 1'], aggfunc=lambda x: x)[[-1, 1]]
     return pivotTable
 
 
@@ -58,20 +60,20 @@ def _adjustPantOutRecord(plantInOutRecord, requiredFromDate):
     return adjectedMachineInOutRecord
 
 
-def getInOutDateRecord(plantno, inOutPivot, requiredFromDate, requiredToDate, similarThreshold=0.85):
+def getInOutDateRecord(plantno, inOutPivot, requiredFromDate, requiredToDate):
     plantInOutRecord = {}
     # find the plantno is in the inOutPivot, if not exist return {}
     if plantno not in list(inOutPivot.index.get_level_values(inOutPivot.index.names[0])):  # https://stackoverflow.com/questions/24495695/pandas-get-unique-multiindex-level-values-by-label
         return {}
-    plantInOut = inOutPivot.loc[plantno].loc[:requiredToDate]
+    plantInOut = inOutPivot.loc[plantno][inOutPivot.loc[plantno].index <= requiredToDate] # get data before the report end date
     inRecord = plantInOut[1].dropna()  # drop none row
     outRecord = plantInOut[-1].dropna()  # drop none row
     for i, outDate in enumerate(reversed(outRecord.index)):
         if (outDate > requiredToDate): continue
-        # get OUT date and its company name
-        outCompanyName = outRecord.loc[outDate]
+        # get OUT date and its cust code
+        outCustCode = outRecord.loc[outDate]
         plantInOutRecord[i] = {}
-        plantInOutRecord[i]['company'] = outCompanyName
+        plantInOutRecord[i]['custCode'] = outCustCode
         plantInOutRecord[i]['out'] = outDate
         # find the possible IN date
         plantInOutRecord[i]['in'] = requiredToDate
@@ -79,27 +81,27 @@ def getInOutDateRecord(plantno, inOutPivot, requiredFromDate, requiredToDate, si
         if len(inRecord) == 0:
             break
         # get last row
-        inDate, inCompanyName = dfModel.getLastRow(inRecord, pop=False)
-        # find the last similar company name
-        similarity = SequenceMatcher(None, outCompanyName, inCompanyName).ratio()
-        # if IN date out of range and has same company name (means that IN/OUT record is not needed)
-        if (similarity > similarThreshold) and (inDate < requiredFromDate):
+        inDate, inCompanyCode = dfModel.getLastRow(inRecord, pop=False)
+        # find the last similar customer code
+        # similarity = SequenceMatcher(None, outCompanyName, inCompanyName).ratio()
+        # if IN date out of range and has same customer code (means that IN/OUT record is not needed)
+        if inDate < requiredFromDate:
             del plantInOutRecord[i]
             break
-        # user sometimes hide the data in the excel, if company name is [], means the IN/OUT record is invalid
-        if str(outCompanyName) == '[]':
+        # user sometimes hide the data in the excel, if customer code is [], means the IN/OUT record is invalid
+        if str(outCustCode) == '[]':
             del plantInOutRecord[i]
             break
         # find the possible true IN date (might ended before this month)
-        if (similarity > similarThreshold) and (outDate < inDate):
+        if outDate < inDate:
             # need inDate before required maximum date, or re-assign max date
-            if (inDate > requiredToDate):
+            if inDate > requiredToDate:
                 plantInOutRecord[i]['in'] = requiredToDate
             else:
                 plantInOutRecord[i]['in'] = inDate
             dfModel.dropLastRows(inRecord, 1)
         # if OUT date is out of requiredFromDate, means the record is already full and do not need to find previous IN/OUT record
-        if (outDate <= requiredFromDate):
+        if outDate <= requiredFromDate:
             break
     adjustedPlantInOutRecord = _adjustPantOutRecord(plantInOutRecord, requiredFromDate)  # return False if no IN/OUT
     return adjustedPlantInOutRecord
@@ -108,44 +110,44 @@ def getInOutDateRecord(plantno, inOutPivot, requiredFromDate, requiredToDate, si
 def getDumpInOutRecord(start, end):
     dumpInOutRecord = {}
     dumpInOutRecord[0] = {}
-    dumpInOutRecord[0]['company'] = "--"
+    dumpInOutRecord[0]['custCode'] = "--"
     dumpInOutRecord[0]['out'] = start
     dumpInOutRecord[0]['in'] = end
     return dumpInOutRecord
 
 
-def getMeasureableFuelTanks__DISCARD():
-    """
-    return dict = {model: tanksize} measuredFuelTanks with measured tank size
-    """
-    # Actual Tank Size
-    measuredFuelTanks = {}
-    # wb = load_workbook(os.path.join(config.tankSizePath, "Measureable_Volume.xlsx"))
-    df = pd.read_excel(os.path.join(config.tankSizePath, 'Measureable_Volume.xlsx'), sheet_name='Sheet1')
-    for i, row in df.iterrows():
-        measuredFuelTanks[row['Model']] = row['Volume']
-        # if model.strip() == required_modelno.strip():
-        #     return measured_tank_size
-    return measuredFuelTanks
-
-
-def getFuelTanks__DISCARD():
-    """
-    return {plantno: {brand, model, tanksize}}
-    """
-    tanks = {}
-    denyoDf = pd.read_excel(os.path.join(config.tankSizePath, 'Denyo plants.xlsx'), sheet_name='工作表1')
-    for i, row in denyoDf.iterrows():
-        tank = {}
-        tank['brand'], tank['model'], tank['fuelTankCapacity'] = row[1], row[2], row[3]
-        tanks[row[0]] = tank
-
-    lightToweroDf = pd.read_excel(os.path.join(config.tankSizePath, 'LightTowers.xlsx'), sheet_name='工作表1')
-    for i, row in lightToweroDf.iterrows():
-        tank = {}
-        tank['brand'], tank['model'], tank['fuelTankCapacity'] = row[1], row[2], row[3]
-        tanks[row[0]] = tank
-    return tanks
+# def getMeasureableFuelTanks__DISCARD():
+#     """
+#     return dict = {model: tanksize} measuredFuelTanks with measured tank size
+#     """
+#     # Actual Tank Size
+#     measuredFuelTanks = {}
+#     # wb = load_workbook(os.path.join(config.tankSizePath, "Measureable_Volume.xlsx"))
+#     df = pd.read_excel(os.path.join(config.tankSizePath, 'Measureable_Volume.xlsx'), sheet_name='Sheet1')
+#     for i, row in df.iterrows():
+#         measuredFuelTanks[row['Model']] = row['Volume']
+#         # if model.strip() == required_modelno.strip():
+#         #     return measured_tank_size
+#     return measuredFuelTanks
+#
+#
+# def getFuelTanks__DISCARD():
+#     """
+#     return {plantno: {brand, model, tanksize}}
+#     """
+#     tanks = {}
+#     denyoDf = pd.read_excel(os.path.join(config.tankSizePath, 'Denyo plants.xlsx'), sheet_name='工作表1')
+#     for i, row in denyoDf.iterrows():
+#         tank = {}
+#         tank['brand'], tank['model'], tank['fuelTankCapacity'] = row[1], row[2], row[3]
+#         tanks[row[0]] = tank
+#
+#     lightToweroDf = pd.read_excel(os.path.join(config.tankSizePath, 'LightTowers.xlsx'), sheet_name='工作表1')
+#     for i, row in lightToweroDf.iterrows():
+#         tank = {}
+#         tank['brand'], tank['model'], tank['fuelTankCapacity'] = row[1], row[2], row[3]
+#         tanks[row[0]] = tank
+#     return tanks
 
 
 def getPlantInfoFromMachineDetails(machineDetails, plantTypes):
@@ -188,21 +190,21 @@ def getRegistedPlant():
     return list(registeredPlants)
 
 
-def getInstalledPlant__DISCARD(plantTypes):
-    """
-    The plant installed SSME module
-    plantTypes: ['YG', 'PG', 'YLT']
-    """
-    installedPlants = set()
-    print('Reading machine item master ... ')
-    df = pd.read_excel(os.path.join(config.installedSSMEPath, 'Machine Item Master.xlsx'), sheet_name='Item Master', header=0)
-    noNullplantDf = df[df['Plant No'].notnull()]
-    typePlantsDf = noNullplantDf[noNullplantDf['Plant No'].str.startswith(tuple(plantTypes))]
-    noSoldPlantDf = typePlantsDf[typePlantsDf['Status'] != 'SOLD']
-    installedPlantsDf = noSoldPlantDf[noSoldPlantDf['SSME Bundle no.'].notnull()]
-    for i, row in installedPlantsDf.iterrows():
-        installedPlants.add(row['Plant No'])
-    return installedPlants
+# def getInstalledPlant__DISCARD(plantTypes):
+#     """
+#     The plant installed SSME module
+#     plantTypes: ['YG', 'PG', 'YLT']
+#     """
+#     installedPlants = set()
+#     print('Reading machine item master ... ')
+#     df = pd.read_excel(os.path.join(config.installedSSMEPath, 'Machine Item Master.xlsx'), sheet_name='Item Master', header=0)
+#     noNullplantDf = df[df['Plant No'].notnull()]
+#     typePlantsDf = noNullplantDf[noNullplantDf['Plant No'].str.startswith(tuple(plantTypes))]
+#     noSoldPlantDf = typePlantsDf[typePlantsDf['Status'] != 'SOLD']
+#     installedPlantsDf = noSoldPlantDf[noSoldPlantDf['SSME Bundle no.'].notnull()]
+#     for i, row in installedPlantsDf.iterrows():
+#         installedPlants.add(row['Plant No'])
+#     return installedPlants
 
 
 def append_chart_page(title, image_name, summary=""):
