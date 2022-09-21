@@ -4,7 +4,7 @@ import matplotlib.dates as mdates
 import pandas as pd
 import numpy as np
 
-from codes.controllers.ServerController import ServerController
+from codes.controllers.NodeJsServerController import NodeJsServerController
 
 
 class MonthlyPlotController:
@@ -12,7 +12,7 @@ class MonthlyPlotController:
         self.locator = locator
         self.formatter = formatter
         self.fig = plt.figure(figsize=figsize, dpi=dpi)
-        self.serverController = ServerController()
+        self.serverController = NodeJsServerController()
 
     # fuel consumption
     def getFuelConsumptionPlot(self, fl, fuelTank, topVolume, outPath, filename):
@@ -156,10 +156,6 @@ class MonthlyPlotController:
             max_kwh = 0
         return max_kwh
 
-    def getGroupkWhPlot(self):
-        # reset axis
-        plt.delaxes()
-
     # CO2 emissions
     def getCO2Plot(self, fl, outPath, plantno):
         # reset axis
@@ -220,7 +216,7 @@ class MonthlyPlotController:
 
         ax = self.fig.add_subplot()
         # ax.plot(actual_power.index, actual_power)
-        ax.plot(main_df_copy.index, main_df_copy)
+        ax.plot(main_df_copy.index, main_df_copy['actual_power'])
         plt.xticks(rotation=90)
         ax.xaxis.set_major_locator(self.locator)
         # ax.xaxis.set_major_formatter(self.formatter)
@@ -273,16 +269,18 @@ class MonthlyPlotController:
 
         # reset axis
         plt.delaxes()
-
         ax = self.fig.add_subplot()
+
+        # define the bar width
         width = 0.3
         # calculate the width assignment table
         widthTable = [w * width for w in np.arange(len(fuelConsumptionDf.columns))]  # [0, 0.2, 0.4, 0.6]
         widthTable = np.array(widthTable) - np.mean(widthTable)  # [-0.3, -0.1, 0.1, 0.3]
-        x = np.arange(0, len(fuelConsumptionDf.index) * 2, 2)
+        x = np.arange(0, len(fuelConsumptionDf.index) * 2, 2)   # make it wider when step is 2
         for i, plantno in enumerate(fuelConsumptionDf):
             ax.bar(x + widthTable[i], fuelConsumptionDf[plantno], width=width, label=plantno)
-        ax.plot(x, totalConsumptionDf, label='Total')
+        ax.plot(x, totalConsumptionDf, label='Total(L)')
+
         # reassign the x-ticks
         ax.set_xticks(x, fuelConsumptionDf.index.strftime('%Y-%m-%d'))
         plt.xticks(rotation=90)
@@ -294,6 +292,40 @@ class MonthlyPlotController:
         self.fig.tight_layout()
         plt.autoscale(enable=True, axis='x', tight=True)
         image_name = os.path.join(outPath, "Fuel Consumption L.png")
+        self.fig.savefig(image_name, bbox_inches="tight", transparent=True)
+
+    def getGroupkWhPlot(self, kWhs, outPath):
+        dailyKWhDf = pd.DataFrame()
+        for plantno, kWhDf in kWhs.items():
+            kWhDf_diff = kWhDf.dropna().diff()
+            dailyKWhDf[plantno] = kWhDf_diff[(kWhDf_diff.abs() < 5000) & (kWhDf_diff >= 0)].resample("D").sum()
+        dailyTotalKWhDf = dailyKWhDf.sum(axis=1)
+
+        # reset axis
+        plt.delaxes()
+        ax = self.fig.add_subplot()
+
+        # define the bar width
+        width = 0.3
+        # calculate the width assignment table
+        widthTable = [w * width for w in np.arange(len(dailyKWhDf.columns))]  # [0, 0.2, 0.4, 0.6]
+        widthTable = np.array(widthTable) - np.mean(widthTable)  # [-0.3, -0.1, 0.1, 0.3]
+        x = np.arange(0, len(dailyKWhDf.index) * 2, 2) # make it wider when step is 2
+        for i, plantno in enumerate(dailyKWhDf):
+            ax.bar(x + widthTable[i], dailyKWhDf[plantno], width=width, label=plantno)
+        ax.plot(x, dailyTotalKWhDf, label='Total')
+
+        # reassign the x-ticks
+        ax.set_xticks(x, dailyKWhDf.index.strftime('%Y-%m-%d'))
+        plt.xticks(rotation=90)
+
+        ax.xaxis.set_major_locator(self.locator)
+        ax.set_ylabel("Power (kWh)")
+        ax.legend(loc='upper right')
+        # set layout
+        self.fig.tight_layout()
+        plt.autoscale(enable=True, axis='x', tight=True)
+        image_name = os.path.join(outPath, "TotalActualPower.png")
         self.fig.savefig(image_name, bbox_inches="tight", transparent=True)
 
     def getFuelLevelMeasurement(self, df_fuel_level_avgs, outPath):

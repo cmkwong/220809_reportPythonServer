@@ -1,9 +1,9 @@
-from codes.controllers.ServerController import ServerController
+from codes.controllers.NodeJsServerController import NodeJsServerController
 
 
 def will_uploadRoutineJob():
     # define server
-    serverController = ServerController()
+    serverController = NodeJsServerController()
     # call upload item master
     serverController.uploadMachineItemMaster()
     # call upload HK key project

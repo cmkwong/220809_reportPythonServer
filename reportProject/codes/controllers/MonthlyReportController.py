@@ -18,13 +18,13 @@ from codes.utils import fileModel
 from codes.controllers.ReportLogic import ReportLogic
 from codes.controllers.TrackerController import Tracker
 from codes.controllers.MonthlyPlotController import MonthlyPlotController
-from codes.controllers.ServerController import ServerController
+from codes.controllers.NodeJsServerController import NodeJsServerController
 from codes.models import reportModel
 
 
 class MonthlyReportController:
     def __init__(self):
-        self.serverController = ServerController()
+        self.serverController = NodeJsServerController()
         self.customeReport = False
         self.tracker = Tracker()
         self.reportLogic = ReportLogic(self.tracker)  # for logic checking

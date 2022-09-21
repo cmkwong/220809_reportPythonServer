@@ -34,7 +34,6 @@ class CompareReportController(MonthlyReportController):
             self.graphPlotter.getkWhPlot(PlantData.rawData, config.tempPath, plantno)
             # plot the kW image (line)
             self.graphPlotter.getkWPowerPlot(PlantData.rawData, config.tempPath, plantno)
-
         self.graphPlotter.getFuelLevelMeasurement(df_fuel_level_avgs, config.tempPath)
         self.graphPlotter.getTotalRefillPlot(fls, fuelTanks, topVolumes, config.tempPath)
         self.graphPlotter.getGroupFuelConsumption(fls, fuelTanks, topVolumes, config.tempPath)

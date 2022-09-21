@@ -1,12 +1,12 @@
 from datetime import date
 from codes.controllers.ReportHelper import ReportHelper
-from codes.controllers.ServerController import ServerController
+from codes.controllers.NodeJsServerController import NodeJsServerController
 from codes.models import emailModel
 
 
 def will_dailySummary():
     # trigger server to update the unit value
-    serverController = ServerController()
+    serverController = NodeJsServerController()
     res = serverController.triggerUnitUpdate()
     print(res)
 

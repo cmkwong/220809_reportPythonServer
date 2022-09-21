@@ -4,7 +4,7 @@ import requests
 import json
 
 
-class ServerController:
+class NodeJsServerController:
     def __init__(self):
         # main URL
         self.mainUrl = config.serverUrl

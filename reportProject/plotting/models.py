@@ -21,7 +21,7 @@ def generateComparePlotImages(req):
     reportController.loop_setup(datefrom, dateto)
 
     # looping each plant no
-    fls, df_fuel_level_avgs, topVolumes, fuelTanks = {}, {}, {}, {}
+    fls, df_fuel_level_avgs, topVolumes, fuelTanks, kWhs = {}, {}, {}, {}, {}
     for plantno in plantnos:
         PlantData = reportController.getPlantData(plantno)
         fl, df_fuel_level_avg = reportController.getFuelLevelUsage(PlantData.rawData)
@@ -33,12 +33,15 @@ def generateComparePlotImages(req):
         topVolumes[plantno] = PlantData.topVolume
         # store the fls
         fls[plantno] = fl
+        # store the kWhs
+        kWhs[plantno] = PlantData.rawData['kwh']
         # get the fuel level df
         df_fuel_level_avgs[plantno] = df_fuel_level_avg
         # plot the kWh image (bar)
         reportController.graphPlotter.getkWhPlot(PlantData.rawData, config.tempComparePath, plantno)
         # plot the kW image (line)
         reportController.graphPlotter.getkWPowerPlot(PlantData.rawData, config.tempComparePath, plantno)
+    reportController.graphPlotter.getGroupkWhPlot(kWhs, config.tempComparePath)
     reportController.graphPlotter.getFuelLevelMeasurement(df_fuel_level_avgs, config.tempComparePath)
     reportController.graphPlotter.getTotalRefillPlot(fls, fuelTanks, topVolumes, config.tempComparePath)
     reportController.graphPlotter.getGroupFuelConsumption(fls, fuelTanks, topVolumes, config.tempComparePath)
