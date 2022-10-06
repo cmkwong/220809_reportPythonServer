@@ -5,9 +5,10 @@ from datetime import datetime
 
 from codes import config
 
+
 class Tracker:
     def __init__(self):
-        self.logger = self.loggingSetup()   # logging in text
+        self.logger = self.loggingSetup()  # logging in text
         self.plantRecord = {}
         # self.debugPlantRecord = {}
         # self.debugPlants = []
@@ -16,12 +17,17 @@ class Tracker:
         # logging setup
         self.ct = datetime.strftime(datetime.now(), "%Y%m%dT%H%M%S")
         log_file = os.path.join(config.logsPath, f"{self.ct}.log")
-        logging.basicConfig(filename=log_file, filemode="w", level=logging.INFO)
+
         logger = logging.getLogger()
+        logger.setLevel(logging.INFO)  # or whatever
+        handler = logging.FileHandler(log_file, 'w', 'utf-8')  # or whatever
+        logger.addHandler(handler)
+        # logging.basicConfig(filename=log_file, filemode="w", level=logging.INFO)
         return logger
 
     def initCsvDf(self):
-        columnsNames = ['plantno', 'report', 'data', 'inout', 'register', 'installed', 'fuelTankCapacity', 'measurabletanksize', 'msg']
+        columnsNames = ['plantno', 'report', 'data', 'inout', 'register', 'installed', 'fuelTankCapacity',
+                        'measurabletanksize', 'msg']
         df = pd.DataFrame(columns=columnsNames)
         df = df.set_index('plantno')
         return df
@@ -50,7 +56,8 @@ class Tracker:
         self.plantRecord[PlantData.plantno]['installed'] = 'yes' if PlantData.installed else 'no'
         self.plantRecord[PlantData.plantno]['fuelTankCapacity'] = 'yes' if PlantData.fuelTankCapacity else 'no'
         self.plantRecord[PlantData.plantno]['measurabletanksize'] = 'yes' if PlantData.measurabletanksize else 'no'
-        if msg: self.plantRecord[PlantData.plantno]['msg'] = f"{self.plantRecord[PlantData.plantno]['msg']}\n{msg}".strip() # concat msg
+        if msg: self.plantRecord[PlantData.plantno][
+            'msg'] = f"{self.plantRecord[PlantData.plantno]['msg']}\n{msg}".strip()  # concat msg
         # if debug: self.debugPlants.append(PlantData.plantno)
 
     def updateHealth(self, plantno, reportOk=True):
@@ -61,9 +68,8 @@ class Tracker:
         # recordCSV_debug = self.initCsvDf()
         for plantno, dicData in self.plantRecord.items():
             series = pd.Series(dicData, name=plantno)
-            recordCSV = recordCSV.append(series)    # if not debug, append on recordCSV
+            recordCSV = recordCSV.append(series)  # if not debug, append on recordCSV
             # recordCSV_debug = recordCSV_debug.append(series)                            # append all record
         recordCSV.to_csv(os.path.join(config.logsPath, f"{self.ct}.csv"))
         # recordCSV_debug.to_csv(os.path.join(config.logsPath, f"{self.ct}_debug.csv"))
         self.logging("Wrote CSV ok.", 'info')
-

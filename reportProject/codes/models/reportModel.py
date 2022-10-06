@@ -66,6 +66,7 @@ def getInOutDateRecord(plantno, inOutPivot, requiredFromDate, requiredToDate):
     if plantno not in list(inOutPivot.index.get_level_values(inOutPivot.index.names[0])):  # https://stackoverflow.com/questions/24495695/pandas-get-unique-multiindex-level-values-by-label
         return {}
     plantInOut = inOutPivot.loc[plantno][inOutPivot.loc[plantno].index <= requiredToDate] # get data before the report end date
+    plantInOut.sort_index(inplace=True)
     inRecord = plantInOut[1].dropna()  # drop none row
     outRecord = plantInOut[-1].dropna()  # drop none row
     for i, outDate in enumerate(reversed(outRecord.index)):
@@ -85,7 +86,7 @@ def getInOutDateRecord(plantno, inOutPivot, requiredFromDate, requiredToDate):
         # find the last similar customer code
         # similarity = SequenceMatcher(None, outCompanyName, inCompanyName).ratio()
         # if IN date out of range and has same customer code (means that IN/OUT record is not needed)
-        if inDate < requiredFromDate:
+        if (inCompanyCode == outCustCode and inDate < requiredFromDate):
             del plantInOutRecord[i]
             break
         # user sometimes hide the data in the excel, if customer code is [], means the IN/OUT record is invalid
@@ -93,7 +94,7 @@ def getInOutDateRecord(plantno, inOutPivot, requiredFromDate, requiredToDate):
             del plantInOutRecord[i]
             break
         # find the possible true IN date (might ended before this month)
-        if outDate < inDate:
+        if (inCompanyCode == outCustCode and outDate < inDate):
             # need inDate before required maximum date, or re-assign max date
             if inDate > requiredToDate:
                 plantInOutRecord[i]['in'] = requiredToDate

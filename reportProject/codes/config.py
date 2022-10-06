@@ -9,7 +9,7 @@ paramPath = os.path.join(PRJ_PATH, 'codes')
 
 LOCATION = 'dev'  # dev / prod
 
-# dev (Home)
+# dev (Notebook environment)
 if (LOCATION == 'dev'):
     monthlyReportDocsPath = os.path.join(PRJ_PATH, 'docs/monthlyReport')
     reportDataPath = os.path.join(monthlyReportDocsPath, "reportData")  # csv path
@@ -22,7 +22,7 @@ if (LOCATION == 'dev'):
     registeredPath = os.path.join(monthlyReportDocsPath, 'registerPlant')
     installedSSMEPath = os.path.join(monthlyReportDocsPath, 'installedSSME')
     tempPath = os.path.join(monthlyReportDocsPath, "pdfImages/temp")  # for storing the plot graph
-    tempComparePath = os.path.join("C:/Users/chris.cheung.APRENTALSHK/Desktop/Chris/projects/220219_APWebServer/dev-data/comparePlots")  # for storing the compare plot graph
+    tempComparePath = os.path.join("C:/Users/chris.cheung.APRENTALSHK/Desktop/Chris/projects/220219_APWebServer/dev-data/compareReport/plots")  # for storing the compare plot graph
     # terex report (move from generated dir to shared dir)
     terexReportFolder = os.path.join(monthlyReportDocsPath, "terexReport/reportFolder")
     terexReoirtSharedFolder = os.path.join(monthlyReportDocsPath, "terexReport/sharedFolder")
@@ -30,6 +30,7 @@ if (LOCATION == 'dev'):
     # HK key project path
     keyProjectPath = 'C:/Users/chris.cheung.APRENTALSHK/Desktop/Chris/projects/211207_APrental/AP_creditFacility/docs/01. Request'
 
+# prod (apdc-data02 environment)
 elif (LOCATION == 'prod'):
     # prod (In server)
     monthlyReportDocsPath = os.path.join(PRJ_PATH, 'docs/monthlyReport')

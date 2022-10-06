@@ -10,7 +10,6 @@ import collections
 import pandas as pd
 import linecache
 import sys
-from scipy.interpolate import interp1d
 
 # self
 from codes import config
@@ -93,7 +92,8 @@ class MonthlyReportController:
 
         # read fuel tank size, measurable tank size and installed SSME module (just included 'YG', 'PG', 'YLT')
         print('Reading plant info from machine details ...')
-        self.fuelTanks, self.measurableFuelTanks, self.topvolumes, self.bottomvolumes, self.installedPlantList = reportModel.getPlantInfoFromMachineDetails(machineDetails, plantTypes=['YG', 'PG', 'YLT'])
+        self.fuelTanks, self.measurableFuelTanks, self.topvolumes, self.bottomvolumes, self.installedPlantList = reportModel.getPlantInfoFromMachineDetails(machineDetails,
+                                                                                                                                                            plantTypes=['YG', 'PG', 'YLT'])
 
         # read registered SSME plantno
         print('Reading registered SSME plantno ...')
@@ -283,7 +283,6 @@ class MonthlyReportController:
         mergeDF.rename(columns=config.colNameTable, inplace=True)
 
         # process the noisy fuel level
-
 
         # if empty dataframe, return empty Dataframe
         if mergeDF.empty:
@@ -568,7 +567,7 @@ class MonthlyReportController:
 
                     # ==================================================================================#
                     # kW Power Output plot
-                    avg_kw, max_kw = self.graphPlotter.getkWPowerPlot(main_df, config.tempPath, fileName)
+                    kw = self.graphPlotter.getkWPowerPlot(main_df, config.tempPath, fileName)
 
                     # ==================================================================================#
                     # daily kwh plot
@@ -710,7 +709,7 @@ class MonthlyReportController:
                     report_tex = report_tex + reportModel.append_chart_page(
                         "Actual Power Consumption",
                         "{}-power_output_consumption".format(fileName),
-                        f"Average kW = {avg_kw:.1f}kW \\par Maximum kW = {max_kw:.1f}kW",
+                        f"Average kW = {kw['avg']:.1f}kW \\par Maximum kW = {kw['max']:.1f}kW",
                     )
 
                     report_tex = report_tex + reportModel.append_title_page("title_energy_consumption.jpg")
@@ -745,12 +744,12 @@ class MonthlyReportController:
                         self.serverController.postMonthlyData({
                             "plantno": plantno,
                             "customerCode": custCode,
-                            "dateFrom": self.report_start_str,
-                            "dateTo": self.report_end_str,
+                            "dateFrom": record_out.strftime('%Y-%m-%d %H:%M:%S'),
+                            "dateTo": record_in.strftime('%Y-%m-%d %H:%M:%S'),
                             "fuelReFill_L": fl.fuel_use_l.sum(),
                             "fuelConsumption_L": fl.fuel_use_l.sum(),
                             "co2Em_Kg": co2_df.sum(),
-                            "totalPower_kWh": avg_kw
+                            "totalPower_kWh": kw['avg']
                         })
 
                     ##########################################################################

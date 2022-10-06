@@ -51,7 +51,10 @@ class MonthlyPlotController:
         self.fig.tight_layout()
         image_name = os.path.join(outPath, "{}-fuel.png".format(filename))
         self.fig.savefig(image_name, bbox_inches="tight", transparent=True)
-        # plt.delaxes(ax=ax)
+
+        # total consumption
+        totalConsumption = fl['fuel_use_l'].sum()
+        return totalConsumption
 
     # fuel consumption
     def getReFuelPlot(self, fl, fuelTank, topVolume, outPath, filename):
@@ -86,7 +89,6 @@ class MonthlyPlotController:
                     color="black",
                     fontsize=fontsize,
                 )
-
         self.fig.tight_layout()
         image_name = os.path.join(outPath, "{}-refuel.png".format(filename))
         self.fig.savefig(image_name, bbox_inches="tight", transparent=True)
@@ -156,7 +158,7 @@ class MonthlyPlotController:
             max_kwh = 0
         return max_kwh
 
-    # CO2 emissions
+    # CO2 emissions (ton)
     def getCO2Plot(self, fl, outPath, plantno):
         # reset axis
         plt.delaxes()
@@ -225,15 +227,18 @@ class MonthlyPlotController:
         image_name = os.path.join(outPath, "{}-power_output_consumption.png".format(plantno))
         self.fig.savefig(image_name, bbox_inches="tight", transparent=True)
 
+        kw = {}
         if main_df_copy['actual_power'].shape[0]:
-            avg_kw = main_df_copy['actual_power'].mean()
-            max_kw = main_df_copy['actual_power'].max()
+            kw['min'] = main_df_copy['actual_power'].min()
+            kw['avg'] = main_df_copy['actual_power'].mean()
+            kw['max'] = main_df_copy['actual_power'].max()
         else:
-            avg_kw = 0
-            max_kw = 0
+            kw['min'] = 0
+            kw['avg'] = 0
+            kw['max'] = 0
 
-        print(f"Avg Power = {avg_kw:.1f}kW, Max Power = {max_kw:.1f}kW")
-        return avg_kw, max_kw
+        print(f"Avg Power = {kw['avg']:.1f}kW, Max Power = {kw['max']:.1f}kW")
+        return kw
 
     def getTotalRefillPlot(self, fls, fuelTanks, topVolumes, outPath):
         # calculate the cumsum
@@ -253,7 +258,7 @@ class MonthlyPlotController:
         ax.plot(refuelByPlantnoDf.index, refuelByPlantnoDf['cumsum'])
         plt.xticks(rotation=90)
         ax.xaxis.set_major_locator(self.locator)
-        ax.set_ylabel("Total Refilling")
+        ax.set_ylabel("Total Litres")
         self.fig.tight_layout()
         image_name = os.path.join(outPath, "Total Fuel Level.png")
         self.fig.savefig(image_name, bbox_inches="tight", transparent=True)
@@ -286,13 +291,16 @@ class MonthlyPlotController:
         plt.xticks(rotation=90)
 
         ax.xaxis.set_major_locator(self.locator)
-        ax.set_ylabel("Fuel Consumption (L)")
+        ax.set_ylabel("Litres")
         ax.legend(loc='upper right')
         # set layout
         self.fig.tight_layout()
         plt.autoscale(enable=True, axis='x', tight=True)
-        image_name = os.path.join(outPath, "Fuel Consumption L.png")
+        image_name = os.path.join(outPath, "groupFuelConsumption_L.png")
         self.fig.savefig(image_name, bbox_inches="tight", transparent=True)
+
+        # sum of fuel consumption
+        return totalConsumptionDf.sum()
 
     def getGroupkWhPlot(self, kWhs, outPath):
         dailyKWhDf = pd.DataFrame()
@@ -320,15 +328,28 @@ class MonthlyPlotController:
         plt.xticks(rotation=90)
 
         ax.xaxis.set_major_locator(self.locator)
-        ax.set_ylabel("Power (kWh)")
-        ax.legend(loc='upper right')
+        ax.set_ylabel("kWh")
+        ax.legend(loc='upper left')
         # set layout
         self.fig.tight_layout()
         plt.autoscale(enable=True, axis='x', tight=True)
-        image_name = os.path.join(outPath, "TotalActualPower.png")
+        image_name = os.path.join(outPath, "totalElectricityConsumption.png")
         self.fig.savefig(image_name, bbox_inches="tight", transparent=True)
 
-    def getFuelLevelMeasurement(self, df_fuel_level_avgs, outPath):
+        kwh = {}
+        if dailyTotalKWhDf.shape[0]:
+            kwh['min'] = dailyTotalKWhDf.min()
+            kwh['avg'] = dailyTotalKWhDf.mean()
+            kwh['max'] = dailyTotalKWhDf.max()
+        else:
+            kwh['min'] = 0
+            kwh['avg'] = 0
+            kwh['max'] = 0
+
+        return kwh
+
+    # this is group fuel level measurement
+    def getGroupFuelLevelMeasurement(self, df_fuel_level_avgs, outPath):
         # reset axis
         plt.delaxes()
 
@@ -339,5 +360,53 @@ class MonthlyPlotController:
         ax.xaxis.set_major_locator(self.locator)
         ax.set_ylabel("Fuel Level %")
         self.fig.tight_layout()
-        image_name = os.path.join(outPath, "Fuel Level Measurement.png")
+        image_name = os.path.join(outPath, "groupFuelLevelMeasurement.png")
         self.fig.savefig(image_name, bbox_inches="tight", transparent=True)
+
+    def getGroupkWPowerPlot(self, main_dfs, outPath):
+        """
+        :param main_dfs: {plantno: pd.DataFrame}
+        :param outPath:
+        :return:
+        """
+        # reset axis
+        plt.delaxes()
+        ax = self.fig.add_subplot()
+
+        kWPowerDf = pd.DataFrame()
+        for i, (plantno, df) in enumerate(main_dfs.items()):
+            df = df.resample("1T").mean()
+            df = df.interpolate(method="linear", limit_direction="both")
+            df = df[df.rpm > 1450]
+            # create temp dataframe
+            if i == 0:
+                kWPowerDf = pd.DataFrame(df['actual_power'].values, index=df.index, columns=[plantno])
+            else:
+                actualPower = pd.DataFrame(df['actual_power'].values, index=df.index, columns=[plantno])
+                kWPowerDf = pd.concat([kWPowerDf, actualPower], axis=1, join='outer')
+        # fill nan
+        kWPowerDf.fillna(0.0, inplace=True)
+        # calculate the sum
+        kWPowerDf['Total'] = kWPowerDf.sum(axis=1)
+        # plot graph
+        for plantno in kWPowerDf:
+            ax.plot(kWPowerDf.index, kWPowerDf[plantno], label=plantno)
+        plt.xticks(rotation=90)
+        ax.xaxis.set_major_locator(self.locator)
+        ax.set_ylabel("kW")
+        ax.legend(loc='upper left')
+        self.fig.tight_layout()
+        image_name = os.path.join(outPath, "groupKw.png")
+        self.fig.savefig(image_name, bbox_inches="tight", transparent=True)
+
+        # total kWh
+        kwh_total = {}
+        if kWPowerDf['Total'].shape[0]:
+            kwh_total['min'] = kWPowerDf['Total'].min()
+            kwh_total['avg'] = kWPowerDf['Total'].mean()
+            kwh_total['max'] = kWPowerDf['Total'].max()
+        else:
+            kwh_total['min'] = 0
+            kwh_total['avg'] = 0
+            kwh_total['max'] = 0
+        return kwh_total

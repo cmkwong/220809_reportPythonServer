@@ -3,5 +3,5 @@ from . import views
 from . import models
 
 urlpatterns = [
-    path('compare/', models.generateComparePlotImages)
+    path('compare', models.generateComparePlotImages_req)
 ]
