@@ -22,11 +22,11 @@ if (LOCATION == 'dev'):
     registeredPath = os.path.join(monthlyReportDocsPath, 'registerPlant')
     installedSSMEPath = os.path.join(monthlyReportDocsPath, 'installedSSME')
     tempPath = os.path.join(monthlyReportDocsPath, "pdfImages/temp")  # for storing the plot graph
-    tempComparePath = os.path.join("C:/Users/chris.cheung.APRENTALSHK/Desktop/Chris/projects/220219_APWebServer/dev-data/compareReport/plots")  # for storing the compare plot graph
+    tempComparePlotsPath = os.path.join("C:/Users/chris.cheung.APRENTALSHK/Desktop/Chris/projects/220219_APWebServer/dev-data/compareReport/plots")  # for storing the compare plot graph
     # terex report (move from generated dir to shared dir)
     terexReportFolder = os.path.join(monthlyReportDocsPath, "terexReport/reportFolder")
     terexReoirtSharedFolder = os.path.join(monthlyReportDocsPath, "terexReport/sharedFolder")
-    serverUrl = 'http://localhost:3001'
+    nodeJsServerUrl = 'http://localhost:3001'
     # HK key project path
     keyProjectPath = 'C:/Users/chris.cheung.APRENTALSHK/Desktop/Chris/projects/211207_APrental/AP_creditFacility/docs/01. Request'
 
@@ -44,11 +44,11 @@ elif (LOCATION == 'prod'):
     registeredPath = '\\\\apdc-data01\\ComApAPIData\\Units'
     installedSSMEPath = '\\\\apdc-dc01\\ShareData\\Data\\Inventory\\Machine\\Plant Master'
     tempPath = os.path.join(monthlyReportDocsPath, "pdfImages/temp")  # for storing the plot graph
-    tempComparePath = os.path.join("")  # for storing the compare plot graph
+    tempComparePlotsPath = os.path.join("C:/Users/itsupport/projects/220219_APWebServer/dev-data/compareReport/plots")  # for storing the compare plot graph
     # terex report (move from generated dir to shared dir)
     terexReportFolder = "C:\\Terex_Python\\Reports"
     terexReoirtSharedFolder = "\\\\apdc-dc01\\ShareData\\Data\\WS-TA\\07.Tunneling\\Operator\\Terex   TA400\\ISM Reports"
-    serverUrl = 'http://localhost:3001'
+    nodeJsServerUrl = 'http://localhost:3001'
     # HK key project path
     keyProjectPath = '\\\\apdc-data01\\UserData\\MP'
 

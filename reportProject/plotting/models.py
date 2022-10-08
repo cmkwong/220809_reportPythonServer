@@ -40,7 +40,7 @@ def generateComparePlotImages(plantnos, datefrom, dateto):
         PlantData = reportController.getPlantData(plantno)
         fl, df_fuel_level_avg = reportController.getFuelLevelUsage(PlantData.rawData)
         # plot the fuel consumption image
-        outputData['fuelConsumptions_L'][plantno] = reportController.graphPlotter.getFuelConsumptionPlot(fl, PlantData.fuelTankCapacity, PlantData.topVolume, config.tempComparePath, plantno)
+        outputData['fuelConsumptions_L'][plantno] = reportController.graphPlotter.getFuelConsumptionPlot(fl, PlantData.fuelTankCapacity, PlantData.topVolume, config.tempComparePlotsPath, plantno)
         # store the fuel tank
         fuelTanks[plantno] = reportController.fuelTanks[plantno]['fuelTankCapacity']
         # store the top volume
@@ -54,14 +54,14 @@ def generateComparePlotImages(plantnos, datefrom, dateto):
         # get the fuel level df
         df_fuel_level_avgs[plantno] = df_fuel_level_avg
         # plot the kWh image (bar)
-        reportController.graphPlotter.getkWhPlot(PlantData.rawData, config.tempComparePath, plantno)
+        reportController.graphPlotter.getkWhPlot(PlantData.rawData, config.tempComparePlotsPath, plantno)
         # plot the kW image (line)
-        outputData['actualPowers_kW'][plantno] = reportController.graphPlotter.getkWPowerPlot(PlantData.rawData, config.tempComparePath, plantno)
-    outputData['totalElectricityConsumption_kWh'] = reportController.graphPlotter.getGroupkWhPlot(kWhs, config.tempComparePath)
-    reportController.graphPlotter.getGroupFuelLevelMeasurement(df_fuel_level_avgs, config.tempComparePath)
-    outputData['totalRefill_L'] = reportController.graphPlotter.getTotalRefillPlot(fls, fuelTanks, topVolumes, config.tempComparePath)
-    outputData['totalFuelConsumptions_L'] = reportController.graphPlotter.getGroupFuelConsumption(fls, fuelTanks, topVolumes, config.tempComparePath)
-    outputData['totalActualPower'] = reportController.graphPlotter.getGroupkWPowerPlot(kWs, config.tempComparePath)
+        outputData['actualPowers_kW'][plantno] = reportController.graphPlotter.getkWPowerPlot(PlantData.rawData, config.tempComparePlotsPath, plantno)
+    outputData['totalElectricityConsumption_kWh'] = reportController.graphPlotter.getGroupkWhPlot(kWhs, config.tempComparePlotsPath)
+    reportController.graphPlotter.getGroupFuelLevelMeasurement(df_fuel_level_avgs, config.tempComparePlotsPath)
+    outputData['totalRefill_L'] = reportController.graphPlotter.getTotalRefillPlot(fls, fuelTanks, topVolumes, config.tempComparePlotsPath)
+    outputData['totalFuelConsumptions_L'] = reportController.graphPlotter.getGroupFuelConsumption(fls, fuelTanks, topVolumes, config.tempComparePlotsPath)
+    outputData['totalActualPower'] = reportController.graphPlotter.getGroupkWPowerPlot(kWs, config.tempComparePlotsPath)
     return outputData
 # generateComparePlotImages(plantnos=["YG634", "YG635", "YG700", "YG701", "YG709", "YG716"], datefrom="2022-07-20 00:00:00", dateto="2022-08-19 23:59:59")
 #

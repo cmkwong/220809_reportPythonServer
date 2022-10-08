@@ -7,7 +7,7 @@ import json
 class NodeJsServerController:
     def __init__(self):
         # main URL
-        self.mainUrl = config.serverUrl
+        self.mainUrl = config.nodeJsServerUrl
         # upload unit values
         self.uploadUnitValuesUrl = self.mainUrl + '/api/v1/ssme/unitValues/upload'
         # get unit values
