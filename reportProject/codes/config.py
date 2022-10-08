@@ -1,4 +1,5 @@
 import os
+import socket
 from codes.utils import sysModel
 
 # project_path
@@ -6,8 +7,11 @@ SER_PATH = sysModel.getTargetPath('220809_reportPythonServer')
 PRJ_PATH = os.path.join(SER_PATH, 'reportProject')
 paramPath = os.path.join(PRJ_PATH, 'codes')
 # ------------------------------------------------------------------------------------------
-
-LOCATION = 'dev'  # dev / prod
+hostname = socket.gethostname()
+if (hostname == 'APDC-DATA02'):
+    LOCATION = 'prod'  # dev / prod
+else:
+    LOCATION = 'dev'
 
 # dev (Notebook environment)
 if (LOCATION == 'dev'):
@@ -22,7 +26,8 @@ if (LOCATION == 'dev'):
     registeredPath = os.path.join(monthlyReportDocsPath, 'registerPlant')
     installedSSMEPath = os.path.join(monthlyReportDocsPath, 'installedSSME')
     tempPath = os.path.join(monthlyReportDocsPath, "pdfImages/temp")  # for storing the plot graph
-    tempComparePlotsPath = os.path.join("C:/Users/chris.cheung.APRENTALSHK/Desktop/Chris/projects/220219_APWebServer/dev-data/compareReport/plots")  # for storing the compare plot graph
+    tempComparePlotsPath = os.path.join(
+        "C:/Users/chris.cheung.APRENTALSHK/Desktop/Chris/projects/220219_APWebServer/dev-data/compareReport/plots")  # for storing the compare plot graph
     # terex report (move from generated dir to shared dir)
     terexReportFolder = os.path.join(monthlyReportDocsPath, "terexReport/reportFolder")
     terexReoirtSharedFolder = os.path.join(monthlyReportDocsPath, "terexReport/sharedFolder")
@@ -44,7 +49,8 @@ elif (LOCATION == 'prod'):
     registeredPath = '\\\\apdc-data01\\ComApAPIData\\Units'
     installedSSMEPath = '\\\\apdc-dc01\\ShareData\\Data\\Inventory\\Machine\\Plant Master'
     tempPath = os.path.join(monthlyReportDocsPath, "pdfImages/temp")  # for storing the plot graph
-    tempComparePlotsPath = os.path.join("C:/Users/itsupport/projects/220219_APWebServer/dev-data/compareReport/plots")  # for storing the compare plot graph
+    tempComparePlotsPath = os.path.join(
+        "C:/Users/itsupport/projects/220219_APWebServer/dev-data/compareReport/plots")  # for storing the compare plot graph
     # terex report (move from generated dir to shared dir)
     terexReportFolder = "C:\\Terex_Python\\Reports"
     terexReoirtSharedFolder = "\\\\apdc-dc01\\ShareData\\Data\\WS-TA\\07.Tunneling\\Operator\\Terex   TA400\\ISM Reports"
@@ -55,7 +61,7 @@ elif (LOCATION == 'prod'):
 colNameTable = {
     "Date": "Datetime",
     "Fuel Level": "fuel_level",
-    "Fuel level": "fuel_level",   # that is noisy fuel level, need to filter out the zero fuel-level
+    "Fuel level": "fuel_level",  # that is noisy fuel level, need to filter out the zero fuel-level
     "Nomin power": "nominal_power",
     "Nominal Power": "nominal_power",
     "actual_power": "actual_power",
