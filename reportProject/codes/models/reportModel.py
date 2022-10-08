@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import os
 import re
+import math
 # from openpyxl import load_workbook
 from difflib import SequenceMatcher
 
@@ -18,7 +19,7 @@ def convert_to_float(value):
 
 def getInOutPivot():
     sheet_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-    listFiles = listModel.filterList(fileModel.getFileList(config.inoutRecordPath), "Daily Machinery In")
+    listFiles = listModel.filterList(fileModel.getFileList(config.inoutRecordPath), "^Daily Machinery In - Out Record_\d\d\d\d.xlsx")
     dfs = {}
     for filename in listFiles:
         # set the path
@@ -60,13 +61,40 @@ def _adjustPantOutRecord(plantInOutRecord, requiredFromDate):
     return adjectedMachineInOutRecord
 
 
+def _sameDateInoutIssue(plantInOut):
+    plantInOut_copy = plantInOut.copy()
+    i = 0
+    for index, row in plantInOut.iterrows():
+        # same company, then should be either OUT or IN that depend on last record
+        if row[-1] == row[1] and isinstance(row[-1], str) and isinstance(row[1], str):
+            # first row default OUT
+            if i == 0:
+                plantInOut.loc[index, 1] = float('nan')  # assume only OUT to be valid, but IN is cancelled
+            else:
+                lastOut = isinstance(plantInOut.iloc[i - 1][-1], str)  # true = out
+                lastIn = isinstance(plantInOut.iloc[i - 1][1], str)  # true = in
+                if lastOut and not lastIn:
+                    plantInOut_copy.loc[index, -1] = float('nan')
+                    row = pd.Series(data={-1: row[-1], 1: float('nan')}, name=index + pd.Timedelta(minutes=30))
+                    plantInOut_copy = plantInOut_copy.append(row, ignore_index=False)
+                elif not lastOut and lastIn:
+                    plantInOut_copy.loc[index, 1] = float('nan')
+                    row = pd.Series(data={-1: float('nan'), 1: row[-1]}, name=index + pd.Timedelta(minutes=30))
+                    plantInOut_copy = plantInOut_copy.append(row, ignore_index=False)
+        i += 1
+    # sort by index
+    plantInOut_copy.sort_index(inplace=True)
+    return plantInOut_copy
+
+
 def getInOutDateRecord(plantno, inOutPivot, requiredFromDate, requiredToDate):
     plantInOutRecord = {}
     # find the plantno is in the inOutPivot, if not exist return {}
     if plantno not in list(inOutPivot.index.get_level_values(inOutPivot.index.names[0])):  # https://stackoverflow.com/questions/24495695/pandas-get-unique-multiindex-level-values-by-label
         return {}
-    plantInOut = inOutPivot.loc[plantno][inOutPivot.loc[plantno].index <= requiredToDate] # get data before the report end date
+    plantInOut = inOutPivot.loc[plantno][inOutPivot.loc[plantno].index <= requiredToDate]  # get data before the report end date
     plantInOut.sort_index(inplace=True)
+    plantInOut = _sameDateInoutIssue(plantInOut)  # settle the same date IN/OUT issue
     inRecord = plantInOut[1].dropna()  # drop none row
     outRecord = plantInOut[-1].dropna()  # drop none row
     for i, outDate in enumerate(reversed(outRecord.index)):
@@ -86,7 +114,7 @@ def getInOutDateRecord(plantno, inOutPivot, requiredFromDate, requiredToDate):
         # find the last similar customer code
         # similarity = SequenceMatcher(None, outCompanyName, inCompanyName).ratio()
         # if IN date out of range and has same customer code (means that IN/OUT record is not needed)
-        if (inCompanyCode == outCustCode and inDate < requiredFromDate):
+        if (inCompanyCode == outCustCode and inDate > outDate and inDate < requiredFromDate):
             del plantInOutRecord[i]
             break
         # user sometimes hide the data in the excel, if customer code is [], means the IN/OUT record is invalid
