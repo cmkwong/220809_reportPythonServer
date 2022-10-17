@@ -148,15 +148,21 @@ class MonthlyPlotController:
                     rotation=90,
                     color="black",
                 )
-
         self.fig.tight_layout()
         image_name = os.path.join(outPath, "{}-daily_kwh.png".format(plantno))
         self.fig.savefig(image_name, bbox_inches="tight", transparent=True)
-        if main_df_copy.shape[0]:
-            max_kwh = main_df_copy.sum()
+        kwh = {}
+        if main_df_copy['actual_power'].shape[0]:
+            kwh['min'] = main_df_copy.min()
+            kwh['avg'] = main_df_copy.mean()
+            kwh['max'] = main_df_copy.max()
         else:
-            max_kwh = 0
-        return max_kwh
+            kwh['min'] = 0
+            kwh['avg'] = 0
+            kwh['max'] = 0
+
+        print(f"Electricity Consumption = {kwh['avg']:.1f}kWh, Max Consumption = {kwh['max']:.1f}kWh")
+        return kwh
 
     # CO2 emissions (ton)
     def getCO2Plot(self, fl, outPath, plantno):

@@ -21,6 +21,7 @@ def generateComparePlotImages_req(req):
     res.status_code = 200
     return res
 
+
 def generateComparePlotImages(plantnos, datefrom, dateto):
     # define the controller
     reportController = MonthlyReportController()
@@ -34,6 +35,7 @@ def generateComparePlotImages(plantnos, datefrom, dateto):
     outputData['totalFuelConsumptions_L'] = 0.0  # value
     outputData['totalRefill_L'] = 0.0  # value
     outputData['actualPowers_kW'] = {}  # plantno: min max average
+    outputData['electricityConsumption_kWh'] = {}  # plantno: min max average
     outputData['totalActualPower'] = {}  # plantno: min max average
     outputData['totalElectricityConsumption_kWh'] = {}  # plantno: min max average
     for plantno in plantnos:
@@ -54,7 +56,7 @@ def generateComparePlotImages(plantnos, datefrom, dateto):
         # get the fuel level df
         df_fuel_level_avgs[plantno] = df_fuel_level_avg
         # plot the kWh image (bar)
-        reportController.graphPlotter.getkWhPlot(PlantData.rawData, config.tempComparePlotsPath, plantno)
+        outputData['electricityConsumption_kWh'][plantno] = reportController.graphPlotter.getkWhPlot(PlantData.rawData, config.tempComparePlotsPath, plantno)
         # plot the kW image (line)
         outputData['actualPowers_kW'][plantno] = reportController.graphPlotter.getkWPowerPlot(PlantData.rawData, config.tempComparePlotsPath, plantno)
     outputData['totalElectricityConsumption_kWh'] = reportController.graphPlotter.getGroupkWhPlot(kWhs, config.tempComparePlotsPath)
@@ -63,6 +65,6 @@ def generateComparePlotImages(plantnos, datefrom, dateto):
     outputData['totalFuelConsumptions_L'] = reportController.graphPlotter.getGroupFuelConsumption(fls, fuelTanks, topVolumes, config.tempComparePlotsPath)
     outputData['totalActualPower'] = reportController.graphPlotter.getGroupkWPowerPlot(kWs, config.tempComparePlotsPath)
     return outputData
-# generateComparePlotImages(plantnos=["YG634", "YG635", "YG700", "YG701", "YG709", "YG716"], datefrom="2022-07-20 00:00:00", dateto="2022-08-19 23:59:59")
-#
+
+# generateComparePlotImages(plantnos=["YG634", "YG716"], datefrom="2022-07-20 00:00:00", dateto="2022-08-19 23:59:59")
 # print()

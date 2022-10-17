@@ -571,7 +571,7 @@ class MonthlyReportController:
 
                     # ==================================================================================#
                     # daily kwh plot
-                    max_kwh = self.graphPlotter.getkWhPlot(main_df, config.tempPath, fileName)
+                    kwh = self.graphPlotter.getkWhPlot(main_df, config.tempPath, fileName)
 
                     # ==================================================================================#
                     # CO2 emissions plot
@@ -714,7 +714,7 @@ class MonthlyReportController:
 
                     report_tex = report_tex + reportModel.append_title_page("title_energy_consumption.jpg")
                     report_tex = report_tex + reportModel.append_chart_page(
-                        "Daily kWh", "{}-daily_kwh".format(fileName), f"Total Energy Consumption = {max_kwh:.0f} kWh"
+                        "Daily kWh", "{}-daily_kwh".format(fileName), f"Total Energy Consumption = {kwh['max']:.0f} kWh"
                     )
 
                     report_tex = report_tex + reportModel.append_title_page("title_co2_emissions.jpg")
