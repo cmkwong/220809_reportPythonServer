@@ -8,6 +8,8 @@ class NodeJsServerController:
     def __init__(self):
         # main URL
         self.mainUrl = config.nodeJsServerUrl
+        # get token
+        self.getWebServerTokenUrl = self.mainUrl + '/api/v1/auth/getToken'
         # upload unit values
         self.uploadUnitValuesUrl = self.mainUrl + '/api/v1/ssme/unitValues/upload'
         # get unit values
@@ -33,6 +35,22 @@ class NodeJsServerController:
         # upload the monthly ssme data into database
         self.uploadMonthlySsmeDataUrl = self.mainUrl + '/api/v1/workflow/ssme/data?server=dev'
 
+        # ------------------ getting token to work ------------------
+        self.token = self.getWebServerToken()
+
+    # get the token from webserver (login)
+    def getWebServerToken(self):
+        body = {
+            "username": config.WEB_LOGINNAME,
+            "password": config.WEB_PASSWORD
+        }
+        r = requests.post(self.getWebServerTokenUrl, json=body)
+        res = r.json()
+        if r.status_code != 200:
+            print(r.text)
+            raise Exception("Cannot get the token from webserver. ")
+        return res['token']
+
     # renew the machine master through server API to mySQL database
     def uploadMachineItemMaster(self):
 
@@ -42,9 +60,12 @@ class NodeJsServerController:
         # update records to server
         records = df.fillna('').to_dict('records')  # records is a parameter from pd.DataFrame
 
+        # build header
+        headers = {"Authorization": f"Bearer {self.token}"}
+
         # send to server
         body = {'data': records}
-        r = requests.post(self.renewMachineItemMasterUrl, json=body)
+        r = requests.post(self.renewMachineItemMasterUrl, json=body, headers=headers)
         res = r.json()
         if r.status_code != 200:
             print(r.text)
@@ -59,9 +80,12 @@ class NodeJsServerController:
         # update records to server
         records = df.fillna('').to_dict('records')
 
+        # build header
+        headers = {"Authorization": f"Bearer {self.token}"}
+
         # send to server
         body = {'data': records}
-        r = requests.post(self.renewHkKeyProjectUrl, json=body)
+        r = requests.post(self.renewHkKeyProjectUrl, json=body, headers=headers)
         res = r.json()
         if r.status_code != 200:
             print(r.text)
@@ -71,7 +95,9 @@ class NodeJsServerController:
     # getting all plant needed details
     def getMachineDetails(self):
         print('Getting plant data from server ... ')
-        r = requests.get(self.getMachineDetailsUrl)
+        # build header
+        headers = {"Authorization": f"Bearer {self.token}"}
+        r = requests.get(self.getMachineDetailsUrl, headers=headers)
         res = r.json()
         if r.status_code != 200:
             print(r.text)
@@ -81,7 +107,9 @@ class NodeJsServerController:
     # trigger server to get Unit update
     def triggerUnitUpdate(self):
         print('Trigger server to update unit ... ')
-        r = requests.get(self.triggerUnitUpdateUrl)
+        # build header
+        headers = {"Authorization": f"Bearer {self.token}"}
+        r = requests.get(self.triggerUnitUpdateUrl, headers=headers)
         res = r.json()  # res has the data fetching from websupervisor
         if r.status_code != 200:
             print(r.text)
@@ -90,11 +118,14 @@ class NodeJsServerController:
 
     # upload the unit values
     def uploadUnitValues(self, tableName, datas):
+        # build header
+        headers = {"Authorization": f"Bearer {self.token}"}
+        # build body
         body = {
             "tableName": tableName,
             "data": datas
         }
-        r = requests.post(self.uploadUnitValuesUrl, json=body)
+        r = requests.post(self.uploadUnitValuesUrl, json=body, headers=headers)
         if r.status_code != 200:
             print(r.text)
             return False
@@ -107,12 +138,15 @@ class NodeJsServerController:
         datetimefrom: str: 2022-07-20 00:00:00
         datetimeto: str 022-08-20 23:59:59
         """
+        # build header
+        headers = {"Authorization": f"Bearer {self.token}"}
+        # build body
         body = {
             "plantno": plantno,
             "datefrom": datetimefrom,
             "dateto": datetimeto
         }
-        r = requests.get(self.getUnitValuesUrl, json=body)
+        r = requests.get(self.getUnitValuesUrl, json=body, headers=headers)
         res = r.json()
         if r.status_code != 200:
             print(r.text)
@@ -125,11 +159,14 @@ class NodeJsServerController:
         datetimefrom: str
         datetimeto: str
         """
+        # build header
+        headers = {"Authorization": f"Bearer {self.token}"}
+        # build body
         body = {
             "datefrom": datetimefrom,
             "dateto": datetimeto
         }
-        r = requests.get(self.getDistinctPlantnoUrl, json=body)
+        r = requests.get(self.getDistinctPlantnoUrl, json=body, headers=headers)
         res = r.json()
         if r.status_code != 200:
             print(r.text)
@@ -137,7 +174,7 @@ class NodeJsServerController:
         return res['results']  # return data
 
     # get the ssme variables
-    def getVariable(self, varName):
+    def getVariable_DISCARD(self, varName):
         body = {
             'varName': varName
         }
@@ -149,7 +186,7 @@ class NodeJsServerController:
         return res['result'][0]['varValue']
 
     # update the ssme variables
-    def updateVariable(self, varName, varValue):
+    def updateVariable_DISCARD(self, varName, varValue):
         body = {
             'varName': varName,
             'varValue': varValue
@@ -163,14 +200,17 @@ class NodeJsServerController:
 
     # count the table rows
     def getTableRowTotal(self, tableName):
-        r = requests.get(self.getRowTotalUrl.format(tableName))
+        # build header
+        headers = {"Authorization": f"Bearer {self.token}"}
+        # build body
+        r = requests.get(self.getRowTotalUrl.format(tableName), headers=headers)
         res = r.json()
         if r.status_code != 200:
             print(r.text)
             return False
         return res['result'][0]['count']
 
-    def getPlotImage(self, legends, X, Ys, plotType='line', path='./', filename='image.png'):
+    def getPlotImage_DISCARD(self, legends, X, Ys, plotType='line', path='./', filename='image.png'):
         Ys_data = {}
         for i, legend in enumerate(legends):
             Ys_data[legend] = Ys[i]
@@ -189,7 +229,10 @@ class NodeJsServerController:
 
     # get customer info customer code - customer name
     def getCustInfo(self):
-        r = requests.get(self.getCustInfoUrl)
+        # build header
+        headers = {"Authorization": f"Bearer {self.token}"}
+        # build request
+        r = requests.get(self.getCustInfoUrl, headers=headers)
         res = r.json()
         if r.status_code != 200:
             print(r.text)
@@ -201,7 +244,10 @@ class NodeJsServerController:
 
     # post the monthly data into database
     def postMonthlyData(self, dataDict):
-        r = requests.post(self.uploadMonthlySsmeDataUrl, json=dataDict)
+        # build header
+        headers = {"Authorization": f"Bearer {self.token}"}
+        # build request
+        r = requests.post(self.uploadMonthlySsmeDataUrl, json=dataDict, headers=headers)
         res = r.json()
         if r.status_code != 200:
             print(r.text)

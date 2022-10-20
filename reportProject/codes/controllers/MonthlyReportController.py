@@ -23,7 +23,7 @@ from codes.models import reportModel
 
 class MonthlyReportController:
     def __init__(self):
-        self.serverController = NodeJsServerController()
+        self.serverController = NodeJsServerController()  # will get token from nodeJS webserver
         self.customeReport = False
         self.tracker = Tracker()
         self.reportLogic = ReportLogic(self.tracker)  # for logic checking

@@ -152,7 +152,7 @@ class MonthlyPlotController:
         image_name = os.path.join(outPath, "{}-daily_kwh.png".format(plantno))
         self.fig.savefig(image_name, bbox_inches="tight", transparent=True)
         kwh = {}
-        if main_df_copy['actual_power'].shape[0]:
+        if main_df_copy.shape[0]:
             kwh['min'] = main_df_copy.min()
             kwh['avg'] = main_df_copy.mean()
             kwh['max'] = main_df_copy.max()

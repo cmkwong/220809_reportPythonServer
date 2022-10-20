@@ -154,6 +154,10 @@ OUTLOOK_SERVER = '192.168.10.223:587'
 OUTLOOK_LOGIN = "chris.cheung@aprentalshk.local"
 OUTLOOK_PW = "#AP.20211206..."
 
+# webserver login
+WEB_LOGINNAME = 'ap_superuser'
+WEB_PASSWORD = 'NZrq74MzVCwPwbqiBE33'
+
 # ------------------------------- html -----------------------------------
 DEFAULT_HTML = """
 <h2>Testing</h2>
