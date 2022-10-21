@@ -1,6 +1,7 @@
 from codes import config
 from codes.models import excelModel
 import requests
+from datetime import date
 import json
 
 
@@ -40,9 +41,12 @@ class NodeJsServerController:
 
     # get the token from webserver (login)
     def getWebServerToken(self):
+        today = date.today()
+        timeStr = today.strftime("%Y-%m-%d %H:%M:%S")
         body = {
             "username": config.WEB_LOGINNAME,
-            "password": config.WEB_PASSWORD
+            "password": config.WEB_PASSWORD,
+            "currenttime": timeStr
         }
         r = requests.post(self.getWebServerTokenUrl, json=body)
         res = r.json()
