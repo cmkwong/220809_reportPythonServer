@@ -46,7 +46,7 @@ class NodeJsServerController:
         body = {
             "username": config.WEB_LOGINNAME,
             "password": config.WEB_PASSWORD,
-            "currenttime": timeStr
+            "payload": timeStr
         }
         r = requests.post(self.getWebServerTokenUrl, json=body)
         res = r.json()
