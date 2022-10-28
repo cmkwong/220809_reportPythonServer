@@ -49,7 +49,7 @@ class MonthlyPlotController:
                 )
 
         self.fig.tight_layout()
-        image_name = os.path.join(outPath, "{}-fuel.png".format(filename))
+        image_name = os.path.join(outPath, filename)
         self.fig.savefig(image_name, bbox_inches="tight", transparent=True)
 
         # total consumption
@@ -106,12 +106,12 @@ class MonthlyPlotController:
         ax.set_ylabel("%")
 
         self.fig.tight_layout()
-        image_name = os.path.join(outPath, "{}-fuel_level.png".format(filename))
+        image_name = os.path.join(outPath, filename)
         self.fig.savefig(image_name, bbox_inches="tight", transparent=True)
         # plt.delaxes(ax=ax)
 
     # Daily KWH
-    def getkWhPlot(self, main_df, outPath, plantno):
+    def getkWhPlot(self, main_df, outPath, filename):
 
         # reset axis
         plt.delaxes()
@@ -149,7 +149,7 @@ class MonthlyPlotController:
                     color="black",
                 )
         self.fig.tight_layout()
-        image_name = os.path.join(outPath, "{}-daily_kwh.png".format(plantno))
+        image_name = os.path.join(outPath, filename)
         self.fig.savefig(image_name, bbox_inches="tight", transparent=True)
         kwh = {}
         if main_df_copy.shape[0]:
@@ -165,7 +165,7 @@ class MonthlyPlotController:
         return kwh
 
     # CO2 emissions (ton)
-    def getCO2Plot(self, fl, outPath, plantno):
+    def getCO2Plot(self, fl, outPath, filename):
         # reset axis
         plt.delaxes()
 
@@ -200,12 +200,12 @@ class MonthlyPlotController:
                     color=color,
                 )
         self.fig.tight_layout()
-        image_name = os.path.join(outPath, "{}-co2_emissions.png".format(plantno))
+        image_name = os.path.join(outPath, filename)
         self.fig.savefig(image_name, bbox_inches="tight", transparent=True)
         return co2_df
 
     # kw power
-    def getkWPowerPlot(self, main_df, outPath, plantno):
+    def getkWPowerPlot(self, main_df, outPath, filename):
         # reset axis
         plt.delaxes()
 
@@ -230,7 +230,7 @@ class MonthlyPlotController:
         # ax.xaxis.set_major_formatter(self.formatter)
         ax.set_ylabel("kW")
         self.fig.tight_layout()
-        image_name = os.path.join(outPath, "{}-power_output_consumption.png".format(plantno))
+        image_name = os.path.join(outPath, filename)
         self.fig.savefig(image_name, bbox_inches="tight", transparent=True)
 
         kw = {}
@@ -246,7 +246,7 @@ class MonthlyPlotController:
         print(f"Avg Power = {kw['avg']:.1f}kW, Max Power = {kw['max']:.1f}kW")
         return kw
 
-    def getTotalRefillPlot(self, fls, fuelTanks, topVolumes, outPath):
+    def getTotalRefillPlot(self, fls, fuelTanks, topVolumes, outPath, filename):
         # calculate the cumsum
         refuelByPlantnoDf = pd.DataFrame()
         for plantno, fl in fls.items():
@@ -266,11 +266,11 @@ class MonthlyPlotController:
         ax.xaxis.set_major_locator(self.locator)
         ax.set_ylabel("Total Litres")
         self.fig.tight_layout()
-        image_name = os.path.join(outPath, "Total Fuel Level.png")
+        image_name = os.path.join(outPath, filename)
         self.fig.savefig(image_name, bbox_inches="tight", transparent=True)
         return totalRefill
 
-    def getGroupFuelConsumption(self, fls, fuelTanks, topVolumes, outPath):
+    def getGroupFuelConsumption(self, fls, fuelTanks, topVolumes, outPath, filename):
         fuelConsumptionDf = pd.DataFrame()
         for plantno, fl in fls.items():
             topVolume = topVolumes[plantno]
@@ -302,13 +302,13 @@ class MonthlyPlotController:
         # set layout
         self.fig.tight_layout()
         plt.autoscale(enable=True, axis='x', tight=True)
-        image_name = os.path.join(outPath, "groupFuelConsumption_L.png")
+        image_name = os.path.join(outPath, filename)
         self.fig.savefig(image_name, bbox_inches="tight", transparent=True)
 
         # sum of fuel consumption
         return totalConsumptionDf.sum()
 
-    def getGroupkWhPlot(self, kWhs, outPath):
+    def getGroupkWhPlot(self, kWhs, outPath, filename):
         dailyKWhDf = pd.DataFrame()
         for plantno, kWhDf in kWhs.items():
             kWhDf_diff = kWhDf.dropna().diff()
@@ -339,7 +339,7 @@ class MonthlyPlotController:
         # set layout
         self.fig.tight_layout()
         plt.autoscale(enable=True, axis='x', tight=True)
-        image_name = os.path.join(outPath, "totalElectricityConsumption.png")
+        image_name = os.path.join(outPath, filename)
         self.fig.savefig(image_name, bbox_inches="tight", transparent=True)
 
         kwh = {}
@@ -355,7 +355,7 @@ class MonthlyPlotController:
         return kwh
 
     # this is group fuel level measurement
-    def getGroupFuelLevelMeasurement(self, df_fuel_level_avgs, outPath):
+    def getGroupFuelLevelMeasurement(self, df_fuel_level_avgs, outPath, filename):
         # reset axis
         plt.delaxes()
 
@@ -366,10 +366,10 @@ class MonthlyPlotController:
         ax.xaxis.set_major_locator(self.locator)
         ax.set_ylabel("Fuel Level %")
         self.fig.tight_layout()
-        image_name = os.path.join(outPath, "groupFuelLevelMeasurement.png")
+        image_name = os.path.join(outPath, filename)
         self.fig.savefig(image_name, bbox_inches="tight", transparent=True)
 
-    def getGroupkWPowerPlot(self, main_dfs, outPath):
+    def getGroupkWPowerPlot(self, main_dfs, outPath, filename):
         """
         :param main_dfs: {plantno: pd.DataFrame}
         :param outPath:
@@ -402,7 +402,7 @@ class MonthlyPlotController:
         ax.set_ylabel("kW")
         ax.legend(loc='upper left')
         self.fig.tight_layout()
-        image_name = os.path.join(outPath, "groupKw.png")
+        image_name = os.path.join(outPath, filename)
         self.fig.savefig(image_name, bbox_inches="tight", transparent=True)
 
         # total kWh

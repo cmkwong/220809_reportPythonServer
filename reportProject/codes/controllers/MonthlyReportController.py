@@ -543,11 +543,11 @@ class MonthlyReportController:
                     record_out = record['out']
                     record_in = record['in']
                     self.tracker.logging(f'company name: {companyName}', 'info')
-                    fileName = "{}_{}".format(plantno, companyName)
+                    plantCustName = "{}_{}".format(plantno, companyName)
 
                     # means the files are duplicated, do not run this again
-                    if os.path.exists(os.path.join(config.tempPath, f"{fileName}.tex")) and not self.customeReport:
-                        print(f"{fileName}.....skipping")
+                    if os.path.exists(os.path.join(config.tempPath, f"{plantCustName}.tex")) and not self.customeReport:
+                        print(f"{plantCustName}.....skipping")
                         continue
 
                     main_df = record['data']
@@ -559,23 +559,23 @@ class MonthlyReportController:
 
                     # ==================================================================================#
                     # fuel consumption plot
-                    self.graphPlotter.getFuelConsumptionPlot(fl, PlantData.fuelTankCapacity, PlantData.topVolume, config.tempPath, fileName)
+                    self.graphPlotter.getFuelConsumptionPlot(fl, PlantData.fuelTankCapacity, PlantData.topVolume, config.tempPath, "{}-fuel.png".format(plantCustName))
 
                     # ==================================================================================#
                     # fuel level plot
-                    self.graphPlotter.getFuelLevelPlot(df_fuel_level_avg, config.tempPath, fileName)
+                    self.graphPlotter.getFuelLevelPlot(df_fuel_level_avg, config.tempPath, "{}-fuel_level.png".format(plantCustName))
 
                     # ==================================================================================#
                     # kW Power Output plot
-                    kw = self.graphPlotter.getkWPowerPlot(main_df, config.tempPath, fileName)
+                    kw = self.graphPlotter.getkWPowerPlot(main_df, config.tempPath, "{}-power_output_consumption.png".format(plantCustName))
 
                     # ==================================================================================#
                     # daily kwh plot
-                    kwh = self.graphPlotter.getkWhPlot(main_df, config.tempPath, fileName)
+                    kwh = self.graphPlotter.getkWhPlot(main_df, config.tempPath, "{}-daily_kwh.png".format(plantCustName))
 
                     # ==================================================================================#
                     # CO2 emissions plot
-                    co2_df = self.graphPlotter.getCO2Plot(fl, config.tempPath, fileName)
+                    co2_df = self.graphPlotter.getCO2Plot(fl, config.tempPath, "{}-co2_emissions.png".format(plantCustName))
 
                     # ==================================================================================#
 
@@ -701,20 +701,20 @@ class MonthlyReportController:
                         """
                     report_tex = report_tex + reportModel.append_title_page("title_fuel_consumption.jpg")
                     report_tex = report_tex + reportModel.append_chart_page(
-                        "Fuel Consumption", "{}-fuel".format(fileName), f"Total Fuel Consumption = {fl.fuel_use_l.sum():.1f}L" + disclaimer
+                        "Fuel Consumption", "{}-fuel".format(plantCustName), f"Total Fuel Consumption = {fl.fuel_use_l.sum():.1f}L" + disclaimer
                     )
-                    report_tex = report_tex + reportModel.append_chart_page("Fuel Level", "{}-fuel_level".format(fileName))
+                    report_tex = report_tex + reportModel.append_chart_page("Fuel Level", "{}-fuel_level".format(plantCustName))
 
                     report_tex = report_tex + reportModel.append_title_page("title_actual_power_consumption.jpg")
                     report_tex = report_tex + reportModel.append_chart_page(
                         "Actual Power Consumption",
-                        "{}-power_output_consumption".format(fileName),
+                        "{}-power_output_consumption".format(plantCustName),
                         f"Average kW = {kw['avg']:.1f}kW \\par Maximum kW = {kw['max']:.1f}kW",
                     )
 
                     report_tex = report_tex + reportModel.append_title_page("title_energy_consumption.jpg")
                     report_tex = report_tex + reportModel.append_chart_page(
-                        "Daily kWh", "{}-daily_kwh".format(fileName), f"Total Energy Consumption = {kwh['max']:.0f} kWh"
+                        "Daily kWh", "{}-daily_kwh".format(plantCustName), f"Total Energy Consumption = {kwh['max']:.0f} kWh"
                     )
 
                     report_tex = report_tex + reportModel.append_title_page("title_co2_emissions.jpg")
@@ -727,7 +727,7 @@ class MonthlyReportController:
                         """
                     report_tex = report_tex + reportModel.append_chart_page(
                         "CO2 Emissions (Metric Ton)",
-                        "{}-co2_emissions".format(fileName),
+                        "{}-co2_emissions".format(plantCustName),
                         f"Total CO2 Emissions = {co2_df.sum():.1f} Metric Ton" + notes,
                     )
 
@@ -735,7 +735,7 @@ class MonthlyReportController:
 
                     report_tex = report_tex + r"\end{document}"
 
-                    with open(os.path.join(config.tempPath, "{}.tex".format(fileName)), "w", encoding="utf8") as f:
+                    with open(os.path.join(config.tempPath, "{}.tex".format(plantCustName)), "w", encoding="utf8") as f:
                         f.write(report_tex)
 
                     ##########################################################################
