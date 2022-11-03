@@ -1,3 +1,5 @@
+import datetime
+
 import pandas as pd
 import numpy as np
 import os
@@ -48,17 +50,20 @@ def getInOutPivot():
     return pivotTable
 
 
-def _adjustPantOutRecord(plantInOutRecord, requiredFromDate):
+def _adjustPantInOutRecord(plantInOutRecord, requiredFromDate):
     """
     :param plantInOutRecord: dict
     :param requiredFromDate: datetime
     :return:
     """
-    adjectedMachineInOutRecord = plantInOutRecord.copy()
+    adjustedMachineInOutRecord = plantInOutRecord.copy()
     for i, record in plantInOutRecord.items():
+        # adjust the OUT record
         if (record['out'] < requiredFromDate):
-            adjectedMachineInOutRecord[i]['out'] = requiredFromDate
-    return adjectedMachineInOutRecord
+            adjustedMachineInOutRecord[i]['out'] = requiredFromDate
+        # adjust the IN record: date time HH:MM:ss = 00:00:00 -> 23:59:59
+
+    return adjustedMachineInOutRecord
 
 
 def _sameDateInoutIssue(plantInOut):
@@ -109,8 +114,12 @@ def getInOutDateRecord(plantno, inOutPivot, requiredFromDate, requiredToDate):
         # if no IN record, just break
         if len(inRecord) == 0:
             break
-        # get last row
+
+        # get last row (last in-date)
         inDate, inCompanyCode = dfModel.getLastRow(inRecord, pop=False)
+        # because of BA have only yyyy-mm-dd but have no HH:MM:ss. So, I assumed the time is the end of date, eg: 23:59:59
+        inDate = inDate + datetime.timedelta(hours=23, minutes=59, seconds=59)
+
         # find the last similar customer code
         # similarity = SequenceMatcher(None, outCompanyName, inCompanyName).ratio()
         # if IN date out of range and has same customer code (means that IN/OUT record is not needed)
@@ -132,7 +141,7 @@ def getInOutDateRecord(plantno, inOutPivot, requiredFromDate, requiredToDate):
         # if OUT date is out of requiredFromDate, means the record is already full and do not need to find previous IN/OUT record
         if outDate <= requiredFromDate:
             break
-    adjustedPlantInOutRecord = _adjustPantOutRecord(plantInOutRecord, requiredFromDate)  # return False if no IN/OUT
+    adjustedPlantInOutRecord = _adjustPantInOutRecord(plantInOutRecord, requiredFromDate)  # return False if no IN/OUT
     return adjustedPlantInOutRecord
 
 
