@@ -8,9 +8,10 @@ from codes.controllers.NodeJsServerController import NodeJsServerController
 
 
 class MonthlyPlotController:
-    def __init__(self, locator=None, formatter=None, figsize=(10, 6), dpi=150):
+    def __init__(self, locator=None, formatter=None, adjustTimeResolution=False, figsize=(10, 6), dpi=150):
         self.locator = locator
         self.formatter = formatter
+        self.adjustTimeResolution = adjustTimeResolution
         self.fig = plt.figure(figsize=figsize, dpi=dpi)
         self.serverController = NodeJsServerController()
 
@@ -20,13 +21,15 @@ class MonthlyPlotController:
         return totalDiff_second
 
     # get required time resolution to display based on the start and end date range
-    def getRequiredTimeResolution(self, df):
+    def getRequiredTimeResolution(self, df, adjust=True):
+        # if adjust is False, then then the original width and daily sample
+
         # calculate the time difference between start and end
         totalDiff_second = df.index.to_series().diff().dt.seconds.fillna(0).sum()
         totalDiff_day = totalDiff_second / 3600 / 24
 
         # check if larger than 10 day, if so, then resample as 'D'
-        if (totalDiff_day > 10.0):
+        if (totalDiff_day > 10.0) or not adjust:
             width = 0.35
             resampleFactor = 'D'
             minsDiff = 1440
@@ -40,7 +43,7 @@ class MonthlyPlotController:
     def getFuelConsumptionPlot(self, fl, fuelTank, topVolume, outPath, filename):
 
         # get required resolution
-        width, _, _ = self.getRequiredTimeResolution(fl)
+        width, _, _ = self.getRequiredTimeResolution(fl, adjust=self.adjustTimeResolution)
 
         # reset axis
         plt.delaxes()
@@ -139,7 +142,7 @@ class MonthlyPlotController:
     def getkWhPlot(self, main_df, outPath, filename):
 
         # get required resolution
-        width, resampleFactor, _ = self.getRequiredTimeResolution(main_df)
+        width, resampleFactor, _ = self.getRequiredTimeResolution(main_df, adjust=self.adjustTimeResolution)
 
         # reset axis
         plt.delaxes()
@@ -184,10 +187,12 @@ class MonthlyPlotController:
             kwh['min'] = main_df_copy.min()
             kwh['avg'] = main_df_copy.mean()
             kwh['max'] = main_df_copy.max()
+            kwh['total'] = main_df_copy.sum()
         else:
             kwh['min'] = 0
             kwh['avg'] = 0
             kwh['max'] = 0
+            kwh['total'] = 0
 
         print(f"Electricity Consumption = {kwh['avg']:.1f}kWh, Max Consumption = {kwh['max']:.1f}kWh")
         return kwh
@@ -196,7 +201,7 @@ class MonthlyPlotController:
     def getCO2Plot(self, fl, outPath, filename):
 
         # get required width
-        width, _, _ = self.getRequiredTimeResolution(fl)
+        width, _, _ = self.getRequiredTimeResolution(fl, adjust=self.adjustTimeResolution)
 
         # reset axis
         plt.delaxes()
@@ -318,7 +323,7 @@ class MonthlyPlotController:
         # calculate the width assignment table
         widthTable = [w * width for w in np.arange(len(fuelConsumptionDf.columns))]  # [0, 0.2, 0.4, 0.6]
         widthTable = np.array(widthTable) - np.mean(widthTable)  # [-0.3, -0.1, 0.1, 0.3]
-        x = np.arange(0, len(fuelConsumptionDf.index) * 2, 2)   # make it wider when step is 2
+        x = np.arange(0, len(fuelConsumptionDf.index) * 2, 2)  # make it wider when step is 2
         for i, plantno in enumerate(fuelConsumptionDf):
             ax.bar(x + widthTable[i], fuelConsumptionDf[plantno], width=width, label=plantno)
         ax.plot(x, totalConsumptionDf, label='Total(L)')
@@ -355,7 +360,7 @@ class MonthlyPlotController:
         # calculate the width assignment table
         widthTable = [w * width for w in np.arange(len(dailyKWhDf.columns))]  # [0, 0.2, 0.4, 0.6]
         widthTable = np.array(widthTable) - np.mean(widthTable)  # [-0.3, -0.1, 0.1, 0.3]
-        x = np.arange(0, len(dailyKWhDf.index) * 2, 2) # make it wider when step is 2
+        x = np.arange(0, len(dailyKWhDf.index) * 2, 2)  # make it wider when step is 2
         for i, plantno in enumerate(dailyKWhDf):
             ax.bar(x + widthTable[i], dailyKWhDf[plantno], width=width, label=plantno)
         ax.plot(x, dailyTotalKWhDf, label='Total')

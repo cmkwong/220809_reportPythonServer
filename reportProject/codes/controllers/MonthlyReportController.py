@@ -22,12 +22,13 @@ from codes.models import reportModel
 
 
 class MonthlyReportController:
-    def __init__(self):
+    def __init__(self, adjustTimeResolution=False):
         self.serverController = NodeJsServerController()  # will get token from nodeJS webserver
         self.customeReport = False
+        self.adjustTimeResolution = adjustTimeResolution    # adjustTimeResolution means that if the report duration is only several days, then resolution will be changed. If set to False, then always calculated in one day
         self.tracker = Tracker()
         self.reportLogic = ReportLogic(self.tracker)  # for logic checking
-        self.graphPlotter = self.setGraphPlotter()  # setting the graph plotter
+        self.graphPlotter = self.setGraphPlotter(adjustTimeResolution)  # setting the graph plotter
 
     def rename_alias(self, header_name):
         for k, v in config.colNameTable.items():
@@ -54,7 +55,7 @@ class MonthlyReportController:
             report_end_date = datetime.strptime(report_end_str, "%Y-%m-%d %H:%M:%S")  # + timedelta(days=1)
         return report_start_date, report_start_str, report_end_date, report_end_str
 
-    def setGraphPlotter(self):
+    def setGraphPlotter(self, adjustTimeResolution=False):
         # ---------------------------------------------------------------------------------------#
         # matplotlib format setup
         locator = mdates.AutoDateLocator()
@@ -79,7 +80,7 @@ class MonthlyReportController:
             "%d %b %Y %H:%M",
         ]
         # set fig configuration
-        graphPlotter = MonthlyPlotController(locator, formatter, figsize=(10, 6), dpi=150)
+        graphPlotter = MonthlyPlotController(locator, formatter, adjustTimeResolution, figsize=(10, 6), dpi=150)
         return graphPlotter
 
     def base_setUp(self):
@@ -304,7 +305,7 @@ class MonthlyReportController:
         df_fuel_level_avg_rm = df_fuel_level_avg.interpolate(method="linear", limit_direction="both").rolling(5, win_type='exponential').mean(tau=10).fillna(method='bfill')
 
         # calculate required timestamp resolution
-        _, resampleFactor, minsDiff = self.graphPlotter.getRequiredTimeResolution(df_fuel_level_avg_rm)
+        _, resampleFactor, minsDiff = self.graphPlotter.getRequiredTimeResolution(df_fuel_level_avg_rm, adjust=self.adjustTimeResolution) # keep in daily data
 
         # raise error if the data dataframe timestamp is smaller than moving average timestamp
         rmSeconds = self.graphPlotter.getTimestep(df_fuel_level_avg_rm)
@@ -385,75 +386,6 @@ class MonthlyReportController:
             refillPercentage = dayFuelDf.diff()[dayFuelDf.diff() < 0].sum() * -1
             fl.loc[d, "fl_usage"] = refillPercentage
         return fl
-
-    # from philip (original that include refill date)
-    def calculateFuelUsage_DISCARD(self, fl, df_fuel_level_avg):
-        # re-calculate for fl_usage in re-fuel days
-        for d, _ in fl.iterrows():
-            temp_df = df_fuel_level_avg[
-                (df_fuel_level_avg.index >= d) & (df_fuel_level_avg.index < d + timedelta(hours=24))
-                ]
-            s1 = temp_df.iloc[0]
-            print("start", s1)
-            e1 = s1
-            s2 = None
-            e2 = temp_df.iloc[-1]
-            i = -1
-            # find the last 3 of smallest value of fuel level and assign to e2
-            for _ in range(3):
-                try:
-                    elast = temp_df.iloc[i]
-                except IndexError:
-                    break
-                # print("elast:", elast)
-                if elast > e2:
-                    break
-                else:
-                    e2 = elast
-                i -= 1
-
-            max_s1 = 0
-            print("end", e2)
-            for index, value in temp_df.iteritems():
-                # find the largest value of fuel level
-                if value > max_s1:
-                    max_s1 = value
-                # find the smallest value of fuel level
-                if value < s1 or value < max_s1:
-                    if e1 > e2:
-                        e1 = value
-                if value > e1 + 30:
-                    if s2 is None or value > s2:
-                        s2 = value
-
-            if s2 is None:
-                print(d)
-                print(f"({max_s1}, {e2})")
-                fuel_used = max_s1 - e2
-            else:
-                print(d)
-                print(f"({s1}, {e1})")
-                print(f"({s2}, {e2})")
-                if e1 > s1:
-                    s1 = e1
-                if e2 > s2:
-                    s2 = e2
-                print(f"({s1}, {e1})")
-                print(f"({s2}, {e2})")
-                fuel_used = (s1 - e1) + (s2 - e2)
-            print("fuel_used: ", fuel_used)
-            fl.loc[d, "fl_usage2"] = fuel_used
-        return fl
-
-    def calculateRefillDf_DISCARD(self, fl):
-        fl_refill = fl.copy()
-        for i, row in fl.iterrows():
-            # refill dates
-            if row['fl_start'] <= row['fl_end']:
-                fl_refill.loc[i, 'refill'] = row['fl_end'] - row['fl_start'] - row['fl_usage']
-            else:
-                fl_refill.loc[i, 'refill'] = 0.0
-        return fl_refill
 
     def getPlantData(self, plantno):
         """
@@ -724,7 +656,7 @@ class MonthlyReportController:
 
                     report_tex = report_tex + reportModel.append_title_page("title_energy_consumption.jpg")
                     report_tex = report_tex + reportModel.append_chart_page(
-                        "Daily kWh", "{}-daily_kwh".format(plantCustName), f"Total Energy Consumption = {kwh['max']:.0f} kWh"
+                        "Daily kWh", "{}-daily_kwh".format(plantCustName), f"Total Energy Consumption = {kwh['total']:.0f} kWh"
                     )
 
                     report_tex = report_tex + reportModel.append_title_page("title_co2_emissions.jpg")
