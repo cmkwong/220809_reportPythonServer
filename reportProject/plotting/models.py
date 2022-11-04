@@ -40,7 +40,7 @@ def generateComparePlotImages(caseNo, plantnos, datefrom, dateto):
     outputData['totalElectricityConsumption_kWh'] = {}  # plantno: min max average
     for plantno in plantnos:
         PlantData = reportController.getPlantData(plantno)
-        fl, df_fuel_level_avg = reportController.getFuelLevelUsage(PlantData.rawData)
+        fl, df_fuel_level_avg_rm = reportController.getFuelLevelUsage(PlantData.rawData)
         # plot the fuel consumption image
         outputData['fuelConsumptions_L'][plantno] = reportController.graphPlotter.getFuelConsumptionPlot(fl, PlantData.fuelTankCapacity, PlantData.topVolume, config.tempComparePlotsPath,
                                                                                                          "{}_{}-fuel.png".format(caseNo, plantno))
@@ -55,7 +55,7 @@ def generateComparePlotImages(caseNo, plantnos, datefrom, dateto):
         # store the kW
         kWs[plantno] = PlantData.rawData
         # get the fuel level df
-        df_fuel_level_avgs[plantno] = df_fuel_level_avg
+        df_fuel_level_avgs[plantno] = df_fuel_level_avg_rm
         # plot the kWh image (bar)
         outputData['electricityConsumption_kWh'][plantno] = reportController.graphPlotter.getkWhPlot(PlantData.rawData, config.tempComparePlotsPath, "{}_{}-daily_kwh.png".format(caseNo, plantno))
         # plot the kW image (line)

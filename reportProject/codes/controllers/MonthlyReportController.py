@@ -298,52 +298,62 @@ class MonthlyReportController:
         # df = df[df.fuel_level >= 0]
         rawFuelLevel = main_df['fuel_level'].dropna()
 
-        # taking moving average
+        # taking mean first then taking moving average: df_fuel_level_avg_rm is an 10 mins moving average data
         rawFuelLevel.sort_index(inplace=True)
         df_fuel_level_avg = rawFuelLevel.resample("10T").mean()
-        df_fuel_level_avg = df_fuel_level_avg.interpolate(method="linear", limit_direction="both").rolling(5, win_type='exponential').mean(tau=10).fillna(method='bfill')
+        df_fuel_level_avg_rm = df_fuel_level_avg.interpolate(method="linear", limit_direction="both").rolling(5, win_type='exponential').mean(tau=10).fillna(method='bfill')
+
+        # calculate required timestamp resolution
+        _, resampleFactor, minsDiff = self.graphPlotter.getRequiredTimeResolution(df_fuel_level_avg_rm)
+
+        # raise error if the data dataframe timestamp is smaller than moving average timestamp
+        rmSeconds = self.graphPlotter.getTimestep(df_fuel_level_avg_rm)
+        if rmSeconds / 60 > minsDiff:
+            raise Exception(f"The data timestamp {minsDiff} minutes cannot smaller than moving average time step {rmSeconds / 60} in minutes")
 
         # merge the start and end of day
-        s = df_fuel_level_avg.resample("D").first()
-        e = df_fuel_level_avg.resample("D").last()
+        s = df_fuel_level_avg_rm.resample(resampleFactor).first()
+        e = df_fuel_level_avg_rm.resample(resampleFactor).last()
         fl = pd.merge(s, e, left_index=True, right_index=True)
         fl.columns = ["fl_start", "fl_end"]
 
         # calculate the fuel usage amount
         fl["fl_usage"] = fl.fl_start - fl.fl_end
-        fl = self.calculateFuelUsage(fl, df_fuel_level_avg)
+        fl = self.calculateFuelUsage(fl, df_fuel_level_avg_rm, minsDiff)
 
         # calculate the re-fuel amount
         fl["refill"] = 0
-        fl = self.calculateRefuel(fl, df_fuel_level_avg)
+        fl = self.calculateRefuel(fl, df_fuel_level_avg_rm, minsDiff)
 
         # calculating how many times being deep V
         fl['fullcount'] = 0  # from using -> 100%
         fl['initcount'] = 0  # from 100% -> using
-        fl = self.getFullTankCount_initUsageCount(fl, df_fuel_level_avg)
-        return fl, df_fuel_level_avg
+        fl = self.getFullTankCount_initUsageCount(fl, df_fuel_level_avg_rm, minsDiff)
+        return fl, df_fuel_level_avg_rm
 
     # for calculating how many times being full refuel in a day
-    def getFullTankCount_initUsageCount(self, fl, df_fuel_level_avg):
+    def getFullTankCount_initUsageCount(self, fl, df_fuel_level_avg_rm, minsDiff):
         for d, _ in fl.iterrows():
-            dayFuelDf = df_fuel_level_avg[
-                (df_fuel_level_avg.index >= d) & (df_fuel_level_avg.index < d + timedelta(hours=24))
+            intervalFuelDf = df_fuel_level_avg_rm[
+                (df_fuel_level_avg_rm.index >= d) & (df_fuel_level_avg_rm.index < d + timedelta(minutes=minsDiff))
                 ]
-            fullTankCount = 0
-            initUsageCount = 0
-            for i, daytime in enumerate(dayFuelDf.index):
+            fullTankCount = 0  # the times being re-fill
+            initUsageCount = 0  # the times being initial to use
+            for i, daytime in enumerate(intervalFuelDf.index):
+                # from using -> 100%
                 if i != 0:
                     # it means refill fully
-                    if dayFuelDf.iloc[i] == 100.0 and dayFuelDf.iloc[i] - dayFuelDf.iloc[i - 1] > 0:
+                    if intervalFuelDf.iloc[i] == 100.0 and intervalFuelDf.iloc[i] - intervalFuelDf.iloc[i - 1] > 0:
                         fullTankCount = fullTankCount + 1
-                if i != len(dayFuelDf) - 1:
-                    if dayFuelDf.iloc[i] == 100.0 and dayFuelDf.iloc[i] - dayFuelDf.iloc[i + 1] > 0:
+                # from 100% -> using
+                if i != len(intervalFuelDf) - 1:
+                    if intervalFuelDf.iloc[i] == 100.0 and intervalFuelDf.iloc[i] - intervalFuelDf.iloc[i + 1] > 0:
                         initUsageCount = initUsageCount + 1
             fl.loc[d, "fullcount"] = fullTankCount
             fl.loc[d, "initcount"] = initUsageCount
         return fl
 
-    def getFuelSlop_NOTUSED(self, dayFuelDf):
+    def getFuelSlop_DISCARD(self, dayFuelDf):
         dayFuelDfCopy = dayFuelDf.copy()
         lastDayTime = None
         for i, (dayTime, row) in enumerate(dayFuelDfCopy.iterrows()):
@@ -356,20 +366,20 @@ class MonthlyReportController:
             lastDayTime = dayTime
         return dayFuelDf
 
-    def calculateRefuel(self, fl, df_fuel_level_avg):
+    def calculateRefuel(self, fl, df_fuel_level_avg, minsDiff):
         for d, _ in fl.iterrows():
             dayFuelDf = df_fuel_level_avg[
-                (df_fuel_level_avg.index >= d) & (df_fuel_level_avg.index < d + timedelta(hours=24))
+                (df_fuel_level_avg.index >= d) & (df_fuel_level_avg.index < d + timedelta(minutes=minsDiff))
                 ]
             # calculate the total refill percentage
             refillPercentage = dayFuelDf.diff()[dayFuelDf.diff() > 0].sum()
             fl.loc[d, "refill"] = refillPercentage
         return fl
 
-    def calculateFuelUsage(self, fl, df_fuel_level_avg):
+    def calculateFuelUsage(self, fl, df_fuel_level_avg, minsDiff):
         for d, _ in fl.iterrows():
             dayFuelDf = df_fuel_level_avg[
-                (df_fuel_level_avg.index >= d) & (df_fuel_level_avg.index < d + timedelta(hours=24))
+                (df_fuel_level_avg.index >= d) & (df_fuel_level_avg.index < d + timedelta(minutes=minsDiff))
                 ]
             # calculate the total refill percentage
             refillPercentage = dayFuelDf.diff()[dayFuelDf.diff() < 0].sum() * -1
@@ -555,7 +565,7 @@ class MonthlyReportController:
 
                     # ==================================================================================#
                     # Calculate Fuel df
-                    fl, df_fuel_level_avg = self.getFuelLevelUsage(main_df)
+                    fl, df_fuel_level_avg_rm = self.getFuelLevelUsage(main_df)
 
                     # ==================================================================================#
                     # fuel consumption plot
@@ -563,7 +573,7 @@ class MonthlyReportController:
 
                     # ==================================================================================#
                     # fuel level plot
-                    self.graphPlotter.getFuelLevelPlot(df_fuel_level_avg, config.tempPath, "{}-fuel_level.png".format(plantCustName))
+                    self.graphPlotter.getFuelLevelPlot(df_fuel_level_avg_rm, config.tempPath, "{}-fuel_level.png".format(plantCustName))
 
                     # ==================================================================================#
                     # kW Power Output plot
@@ -601,7 +611,7 @@ class MonthlyReportController:
                         \pdfobjcompresslevel=2
                         \usepackage[en-GB]{datetime2}
                         \usepackage{hyperref}
-        
+
                         \hypersetup{
                             pageanchor=false,
                             colorlinks=true,
@@ -609,7 +619,7 @@ class MonthlyReportController:
                             filecolor=magenta,
                             urlcolor=cyan,
                         }
-        
+
                         \graphicspath{
                                     {%s}
                                     {%s}
@@ -617,7 +627,7 @@ class MonthlyReportController:
                                     {%s}
                                     {%s}
                         }
-        
+
                         \backgroundsetup{
                         scale=1,
                         color=black,
@@ -625,15 +635,15 @@ class MonthlyReportController:
                         angle=0,
                         contents={\includegraphics[width=\paperwidth,height=\paperheight]{background.jpg} }
                         }
-        
+
                         \sffamily
-        
+
                         \begin{document}
-        
+
                         \begin{titlepage}
                             \BgThispage
                             \pagenumbering{gobble}
-        
+
                             \begin{tikzpicture}[remember picture, overlay]
                             \node [shift={(0cm, -5cm)}] at (current page.north) { \includegraphics[scale=1.8]{APR SSME logo.png} };
                     """ % (config.tempPath.replace('\\', '/'),
@@ -665,9 +675,9 @@ class MonthlyReportController:
                             + f"\\textbf{{{companyName}}}\n\\par\n"
                             + f"\\textbf{{{plantno.upper()} ({PlantData.brand.upper()} {PlantData.model.upper()})}}\n\\par\n\\textbf{{{start_str} - {end_str}}}"
                             + r"""
-                            
+
                             \end{center}
-        
+
                             \begin{flushright}
                             \Huge
                             Performance Review
@@ -902,5 +912,6 @@ class MonthlyReportController:
         rows = cur.fetchall()
         return rows
 
-# reportController = ReportController()
-# reportController.processMonth2Server(year='2022', month='5')
+
+# monthlyReportController = MonthlyReportController()
+# monthlyReportController.processMonth2Server(year='2022', month='10')

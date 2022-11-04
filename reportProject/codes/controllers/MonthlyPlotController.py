@@ -14,8 +14,33 @@ class MonthlyPlotController:
         self.fig = plt.figure(figsize=figsize, dpi=dpi)
         self.serverController = NodeJsServerController()
 
+    # get the dataframe timestep in seconds
+    def getTimestep(self, df):
+        totalDiff_second = df.index.to_series().diff().dt.seconds.fillna(0).sum() / (len(df) - 1)
+        return totalDiff_second
+
+    # get required time resolution to display based on the start and end date range
+    def getRequiredTimeResolution(self, df):
+        # calculate the time difference between start and end
+        totalDiff_second = df.index.to_series().diff().dt.seconds.fillna(0).sum()
+        totalDiff_day = totalDiff_second / 3600 / 24
+
+        # check if larger than 10 day, if so, then resample as 'D'
+        if (totalDiff_day > 10.0):
+            width = 0.35
+            resampleFactor = 'D'
+            minsDiff = 1440
+        else:
+            width = 0.02
+            resampleFactor = '1H'
+            minsDiff = 60
+        return width, resampleFactor, minsDiff
+
     # fuel consumption
     def getFuelConsumptionPlot(self, fl, fuelTank, topVolume, outPath, filename):
+
+        # get required resolution
+        width, _, _ = self.getRequiredTimeResolution(fl)
 
         # reset axis
         plt.delaxes()
@@ -23,7 +48,7 @@ class MonthlyPlotController:
         fl["fuel_use_l"] = (fl['fl_usage'] / 100.0 * fuelTank + fl['initcount'] * topVolume).fillna(0)
 
         ax = self.fig.add_subplot()
-        ax.bar(fl.index, fl['fuel_use_l'], label="Consumption", color="darkorange", edgecolor="black")
+        ax.bar(fl.index, fl['fuel_use_l'], width=width, label="Consumption", color="darkorange", edgecolor="black")
         plt.xticks(rotation=90)
         ax.xaxis.set_major_locator(self.locator)
         # ax.xaxis.set_major_formatter(self.formatter)
@@ -113,16 +138,19 @@ class MonthlyPlotController:
     # Daily KWH
     def getkWhPlot(self, main_df, outPath, filename):
 
+        # get required resolution
+        width, resampleFactor, _ = self.getRequiredTimeResolution(main_df)
+
         # reset axis
         plt.delaxes()
 
         main_df_copy = main_df.copy()
         main_df_copy = main_df_copy.kwh.dropna().diff()
-        main_df_copy = main_df_copy[(main_df_copy.abs() < 5000) & (main_df_copy >= 0)].resample("D").sum()
+
+        main_df_copy = main_df_copy[(main_df_copy.abs() < 5000) & (main_df_copy >= 0)].resample(resampleFactor).sum()
 
         ax = self.fig.add_subplot()
-        width = 0.35
-        ax.bar(main_df_copy.index, main_df_copy, width=width * 2, label="kWh", color="darkorange", edgecolor="black")
+        ax.bar(main_df_copy.index, main_df_copy, width=width, label="kWh", color="darkorange", edgecolor="black")
         plt.xticks(rotation=90)
         ax.xaxis.set_major_locator(self.locator)
         # ax.xaxis.set_major_formatter(self.formatter)
@@ -166,6 +194,10 @@ class MonthlyPlotController:
 
     # CO2 emissions (ton)
     def getCO2Plot(self, fl, outPath, filename):
+
+        # get required width
+        width, _, _ = self.getRequiredTimeResolution(fl)
+
         # reset axis
         plt.delaxes()
 
@@ -173,8 +205,7 @@ class MonthlyPlotController:
         co2_df = fl["CO2"]
 
         ax = self.fig.add_subplot()
-        width = 0.35
-        ax.bar(co2_df.index, co2_df, width=width * 2, label="CO2", color="darkgrey", edgecolor="black")
+        ax.bar(co2_df.index, co2_df, width=width, label="CO2", color="darkgrey", edgecolor="black")
         plt.xticks(rotation=90)
         ax.xaxis.set_major_locator(self.locator)
         # ax.xaxis.set_major_formatter(self.formatter)
