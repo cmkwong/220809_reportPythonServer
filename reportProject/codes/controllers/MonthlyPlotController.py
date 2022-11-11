@@ -14,6 +14,7 @@ class MonthlyPlotController:
         self.adjustTimeResolution = adjustTimeResolution
         self.fig = plt.figure(figsize=figsize, dpi=dpi)
         self.serverController = NodeJsServerController()
+        self._maximum = 0  # used in clean kWh value
 
     # get the dataframe timestep in seconds
     def getTimestep(self, df):
@@ -138,6 +139,36 @@ class MonthlyPlotController:
         self.fig.savefig(image_name, bbox_inches="tight", transparent=True)
         # plt.delaxes(ax=ax)
 
+    # clean-up duplicated of data in kwh
+    def _cleanDuplicated_kwh(self, row):
+        if row > self._maximum:
+            self._maximum = row
+        else:
+            row = self._maximum
+        return row
+
+    # get required kWh from main_df
+    def _refactorkWhDf(self, raw_kwh, resampleFactor):
+        """
+        :param raw_kwh: kWh Series without factoring the timeindex
+        :param resampleFactor: 'D', '5min', etc
+        :return: pd.Series
+        """
+        # extract the kWh
+        kwhDf = raw_kwh.dropna()
+
+        # clean the duplicated data
+        kwhCleanDuplicated = kwhDf.apply(self._cleanDuplicated_kwh)
+        self._maximum = 0
+
+        # take the difference values
+        kwhDiff = kwhCleanDuplicated.diff()
+
+        # resample and sum of them
+        kwhResampleData = kwhDiff.resample(resampleFactor).sum()
+
+        return kwhResampleData
+
     # Daily KWH
     def getkWhPlot(self, main_df, outPath, filename):
 
@@ -146,27 +177,25 @@ class MonthlyPlotController:
 
         # reset axis
         plt.delaxes()
-
-        main_df_copy = main_df.copy()
-        main_df_copy = main_df_copy.kwh.dropna().diff()
-
-        main_df_copy = main_df_copy[(main_df_copy.abs() < 5000) & (main_df_copy >= 0)].resample(resampleFactor).sum()
-
         ax = self.fig.add_subplot()
-        ax.bar(main_df_copy.index, main_df_copy, width=width, label="kWh", color="darkorange", edgecolor="black")
+
+        # get the kWh
+        kwhResampleData = self._refactorkWhDf(main_df.kwh, resampleFactor)
+
+        ax.bar(kwhResampleData.index, kwhResampleData, width=width, label="kWh", color="darkorange", edgecolor="black")
         plt.xticks(rotation=90)
         ax.xaxis.set_major_locator(self.locator)
         # ax.xaxis.set_major_formatter(self.formatter)
         ax.set_ylabel("kWh")
         try:
-            ax.set_ylim((main_df_copy.min() * 0.9, main_df_copy.max() * 1.1))
+            ax.set_ylim((kwhResampleData.min() * 0.9, kwhResampleData.max() * 1.1))
         except ValueError:
             pass
-        max_height = main_df_copy.max() - main_df_copy.min()
+        max_height = kwhResampleData.max() - kwhResampleData.min()
         for p in ax.patches:
             value = p.get_height()
             if value > 0:
-                if value > max_height * 0.9 + main_df_copy.min() * 0.9:
+                if value > max_height * 0.9 + kwhResampleData.min() * 0.9:
                     va = "top"
                 else:
                     va = "bottom"
@@ -183,11 +212,11 @@ class MonthlyPlotController:
         image_name = os.path.join(outPath, filename)
         self.fig.savefig(image_name, bbox_inches="tight", transparent=True)
         kwh = {}
-        if main_df_copy.shape[0]:
-            kwh['min'] = main_df_copy.min()
-            kwh['avg'] = main_df_copy.mean()
-            kwh['max'] = main_df_copy.max()
-            kwh['total'] = main_df_copy.sum()
+        if kwhResampleData.shape[0]:
+            kwh['min'] = kwhResampleData.min()
+            kwh['avg'] = kwhResampleData.mean()
+            kwh['max'] = kwhResampleData.max()
+            kwh['total'] = kwhResampleData.sum()
         else:
             kwh['min'] = 0
             kwh['avg'] = 0
@@ -344,11 +373,13 @@ class MonthlyPlotController:
         # sum of fuel consumption
         return totalConsumptionDf.sum()
 
+    # calculate the grouped of kWh
     def getGroupkWhPlot(self, kWhs, outPath, filename):
+
         dailyKWhDf = pd.DataFrame()
         for plantno, kWhDf in kWhs.items():
-            kWhDf_diff = kWhDf.dropna().diff()
-            dailyKWhDf[plantno] = kWhDf_diff[(kWhDf_diff.abs() < 5000) & (kWhDf_diff >= 0)].resample("D").sum()
+            _, resampleFactor, _ = self.getRequiredTimeResolution(kWhDf, adjust=self.adjustTimeResolution)  # default daily and width 0.3
+            dailyKWhDf[plantno] = self._refactorkWhDf(kWhDf, resampleFactor)
         dailyTotalKWhDf = dailyKWhDf.sum(axis=1)
 
         # reset axis
