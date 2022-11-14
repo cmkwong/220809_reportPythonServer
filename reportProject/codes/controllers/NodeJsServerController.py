@@ -32,9 +32,9 @@ class NodeJsServerController:
         # image plot generate
         self.plotGenerateUrl = self.mainUrl + '/api/v1/report/ssme/plot?type={}'
         # get the customer info from production
-        self.getCustInfoUrl = self.mainUrl + '/api/v1/workflow/customer?server=prod'
+        self.getCustInfoUrl = self.mainUrl + '/api/v1/workflow/customer?wfserver=prod'
         # upload the monthly ssme data into database
-        self.uploadMonthlySsmeDataUrl = self.mainUrl + '/api/v1/workflow/ssme/data?server=dev'
+        self.uploadMonthlySsmeDataUrl = self.mainUrl + '/api/v1/ssme/month/data?wfserver=dev'
 
         # ------------------ getting token to work ------------------
         self.token = self.getWebServerToken()
