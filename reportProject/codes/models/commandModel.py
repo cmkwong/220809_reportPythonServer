@@ -29,9 +29,15 @@ def control_command_check(helper, ans):
             return command_checked
 
         # reading csv and making sqlite
-        elif ans == '-sql':
+        elif ans == '-sqlite':
             params = paramModel.ask_params(helper.reportController.processMonthToSqlite, config.paramPath, 'param.txt')
             helper.reportController.processMonthToSqlite(**params)
+            return command_checked
+
+        # reading csv and upload into sql server
+        elif ans == '-sql':
+            params = paramModel.ask_params(helper.reportController.processMonth2Server, config.paramPath, 'param.txt')
+            helper.reportController.processMonth2Server(**params)
             return command_checked
 
         # reading sqlite and generating tex files

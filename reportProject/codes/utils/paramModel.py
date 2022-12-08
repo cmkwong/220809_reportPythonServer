@@ -13,9 +13,9 @@ def paramPreprocess(input_data, param):
     return required_input_data
 
 
-def read_default_param(strategy_name, main_path, paramFile):
+def read_default_param(class_name, main_path, paramFile):
     text = fileModel.read_text(main_path, paramFile)
-    strategy_param_text = [t for t in text.split('~') if len(t) > 0 and t.find(strategy_name) >= 0][0].strip()
+    strategy_param_text = [t for t in text.split('~') if len(t) > 0 and t.find(class_name) >= 0][0].strip()
     strategy_param_dict = {}
     for param_text in strategy_param_text.split('\n')[1:]:
         param_name, value = param_text.split(':', 1)
