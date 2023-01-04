@@ -837,6 +837,8 @@ class MonthlyReportController:
                 print(f"Real line pushed: {self.serverController.getTableRowTotal(table_name) + len(buf) - last_line}")
                 print(f"All completed - {table_name}")
 
+
+
     def readSqlite(self, mainPath, fileName, command):
         conn = sqlite3.connect(os.path.join(mainPath, fileName))
         cur = conn.cursor()

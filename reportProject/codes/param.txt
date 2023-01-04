@@ -12,6 +12,9 @@ month: 12
 year: 2022
 month: 1
 
+~ReportController.serverController.createUnitValueTable
+tableName: ssme202212
+
 ~emailModel.sendEmail
 emailFrom: chris.cheung@aprentalshk.com
 emailTo: chris.cheung@aprentalshk.com, albert.wong@aprentalshk.com

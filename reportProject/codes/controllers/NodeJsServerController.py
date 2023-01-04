@@ -19,7 +19,7 @@ class NodeJsServerController:
         self.getDistinctPlantnoUrl = self.mainUrl + '/api/v1/ssme/units/plantno'
         # renew the machine master excel from Sam
         self.renewMachineItemMasterUrl = self.mainUrl + '/api/v1/machine/itemmaster'
-        # get the key project from Hugo
+        # get the key project from Hugo excel
         self.renewHkKeyProjectUrl = self.mainUrl + '/api/v1/workflow/renew/hkkeyproject'
         # get machine details from mySQL
         self.getMachineDetailsUrl = self.mainUrl + '/api/v1/machine/getDetail'
@@ -35,6 +35,8 @@ class NodeJsServerController:
         self.getCustInfoUrl = self.mainUrl + '/api/v1/workflow/customer?wfserver=prod'
         # upload the monthly ssme data into database
         self.uploadMonthlySsmeDataUrl = self.mainUrl + '/api/v1/ssme/month/data?wfserver=dev'
+        # create unit values table
+        self.createUnitValueTableUrl = self.mainUrl + '/api/v1/ssme/unitValues/createTable'
 
         # ------------------ getting token to work ------------------
         self.token = self.getWebServerToken()
@@ -252,6 +254,26 @@ class NodeJsServerController:
         headers = {"Authorization": f"Bearer {self.token}"}
         # build request
         r = requests.post(self.uploadMonthlySsmeDataUrl, json=dataDict, headers=headers)
+        res = r.json()
+        if r.status_code != 200:
+            print(r.text)
+            return False
+        return res
+
+    # create unit values table onto SQL server
+    def createUnitValueTable(self, *, tableName: str):
+        """
+        :param tableName: eg: ssme202212
+        :return: response
+        """
+        # build header
+        headers = {"Authorization": f"Bearer {self.token}"}
+        # body
+        body = {
+            "tableName": tableName,
+        }
+        # build request
+        r = requests.get(self.createUnitValueTableUrl, headers=headers, json=body)
         res = r.json()
         if r.status_code != 200:
             print(r.text)

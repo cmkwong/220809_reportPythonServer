@@ -28,7 +28,7 @@ def control_command_check(helper, ans):
             emailModel.sendEmail(contentHtml=contentHtml, **params)
             return command_checked
 
-        # reading csv and making sqlite
+        # reading csv and making sqlite (Discard)
         elif ans == '-sqlite':
             params = paramModel.ask_params(helper.reportController.processMonthToSqlite, config.paramPath, 'param.txt')
             helper.reportController.processMonthToSqlite(**params)
@@ -38,6 +38,12 @@ def control_command_check(helper, ans):
         elif ans == '-sql':
             params = paramModel.ask_params(helper.reportController.processMonth2Server, config.paramPath, 'param.txt')
             helper.reportController.processMonth2Server(**params)
+            return command_checked
+
+        # create table by NodeJS Server
+        elif ans == '-table':
+            params = paramModel.ask_params(helper.reportController.serverController.createUnitValueTable, config.paramPath, 'param.txt')
+            helper.reportController.serverController.createUnitValueTable(**params)
             return command_checked
 
         # reading sqlite and generating tex files
