@@ -20,7 +20,7 @@ def run_threaded(job_func, *args):
 schedule.every().day.at('19:00').do(will_uploadRoutineJob)
 
 # get sqlite data every day
-schedule.every().day.at('20:00').do(run_threaded, will_sqliteData)   # do it every day
+# schedule.every().day.at('20:00').do(run_threaded, will_sqliteData)   # do it every day
 
 # send daily email notice
 schedule.every().day.at('03:00').do(will_dailySummary)

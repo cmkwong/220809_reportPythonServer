@@ -19,7 +19,7 @@ def will_dailySummary():
         endUntil=True)
     # loop for plants
     reporthelper.reportController.loopForEachPlant(reportPdfNeeded=False, report_start_str=report_start_str,
-                                                   report_end_str=report_end_str, request_plantno=[])
+                                                   report_end_str=report_end_str, request_plantno=[], upload=False)
     # write the csv report
     reporthelper.reportController.tracker.writeCSV()  # write the record csv
     print('SSME summary completed')

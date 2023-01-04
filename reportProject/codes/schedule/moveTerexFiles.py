@@ -1,7 +1,7 @@
 import shutil
 import os
 
-from utils import fileModel
+from codes.utils import fileModel
 from codes import config
 from codes.controllers.ReportHelper import ReportHelper
 from codes.models import emailModel

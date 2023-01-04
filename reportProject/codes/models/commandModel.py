@@ -1,5 +1,5 @@
 from codes import config
-from utils import paramModel
+from codes.utils import paramModel
 from codes.models import emailModel
 
 def control_command_check(helper, ans):
